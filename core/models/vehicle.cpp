@@ -74,7 +74,7 @@ void Vehicle::computeLongitudinal(WorldContext& world, const Lane& L,
     double gapToLeader = 1e9;
     double vFront = params_.desiredSpeed;
     if (const Vehicle* leader =
-            world.findLeaderInLane(L.id, s_, &gapToLeader)) {
+        world.findLeaderInLane(L.id, s_, &gapToLeader)) {
         vFront = leader->v();
     }
     if (L.isConnector || abs(s_ - L.stopLineS.value()) < 5) {
@@ -242,13 +242,14 @@ void Vehicle::checkLaneChangeRequirement(WorldContext& world) {
 
 void Vehicle::handlePlanningState(WorldContext& world) {
     auto visible = getVisibleVehiclesInLane(world, lc_request_->target_lane);
-
+    std::cout << visible.size() << " " << id() << '\n';
     if (visible.empty()) {
         startLaneChangeExecution(world);
     } else {
         bool can_merge = checkIfCanMergeSafely(visible);
-        can_merge ? startLaneChangeExecution(world)
-                  : sendYieldRequests(visible, world);
+        can_merge
+            ? startLaneChangeExecution(world)
+            : sendYieldRequests(visible, world);
     }
 }
 
@@ -258,13 +259,14 @@ void Vehicle::handleRequestingState(WorldContext& world) {
     if (yielding_count > 0 || isLaneChangeUrgent()) {
         startLaneChangeExecution(world);
     } else if (world.clock->now - lc_request_->request_time > 8.0) {
-        lc_state_ = lc_request_->urgent ? LaneChangeState::Executing
-                                        : LaneChangeState::Aborting;
+        lc_state_ = lc_request_->urgent
+                        ? LaneChangeState::Executing
+                        : LaneChangeState::Aborting;
     }
 }
 
 void Vehicle::executeLaneChange(double dt, WorldContext& world) {
-    lateral_progress_ += dt / lane_change_duration_;
+    lateral_progress_ += dt / driver_.laneChangeDuration_;
 
     if (lateral_progress_ >= 1.0) {
         completeLaneChange(world);
@@ -277,7 +279,7 @@ void Vehicle::executeLaneChange(double dt, WorldContext& world) {
 }
 
 void Vehicle::abortLaneChange(double dt, WorldContext& world) {
-    lateral_progress_ -= dt / lane_change_duration_;
+    lateral_progress_ -= dt / driver_.laneChangeDuration_;
     if (lateral_progress_ <= 0.0) {
         lateral_progress_ = 0.0;
         lc_state_ = LaneChangeState::None;
@@ -325,7 +327,7 @@ std::vector<VisibleObject> Vehicle::getVisibleObjects(WorldContext& world) {
             continue;
 
         double distance = calculateDistanceTo(*obj);
-        double speed = 0;  // TODO для пешеходов
+        double speed = 0; // TODO для пешеходов
         result.push_back({obj, distance, speed, true});
     }
 
@@ -354,7 +356,7 @@ bool Vehicle::checkIfCanMergeSafely(
     const std::vector<VisibleVehicle>& visible) {
     for (const auto& v : visible) {
         double time_to_intercept = v.distance / (v.relative_speed + 0.1);
-        if (time_to_intercept < lane_change_duration_ * 1.2) {
+        if (time_to_intercept < driver_.laneChangeDuration_ * 1.2) {
             return false;
         }
     }
@@ -486,13 +488,16 @@ void Vehicle::update(double dt, WorldContext& world) {
     g_lastNet = world.net;
     updateLaneChange(dt, world);
 
-    if (lc_request_.has_value() && lc_state_ != LaneChangeState::Executing &&
-        lc_state_ != LaneChangeState::Aborting) {
+    const Lane* L = world.net->getLane(lane_);
+
+    if (lc_request_.has_value() && ((lc_state_ != LaneChangeState::Executing &&
+                                     lc_state_ != LaneChangeState::Aborting) ||
+                                    (L
+                                     && L->stopLineS.value_or(0) - s_ < 5))) {
         v_ = 0.0;
         a_ = 0.0;
         mode_ = VehicleMode::Stopped;
     } else {
-        const Lane* L = world.net->getLane(lane_);
         if (L) {
             double target_accel = 0.0;
             computeLongitudinal(world, *L, &target_accel);
@@ -506,4 +511,4 @@ void Vehicle::update(double dt, WorldContext& world) {
     }
 }
 
-}  // namespace sim
+} // namespace sim

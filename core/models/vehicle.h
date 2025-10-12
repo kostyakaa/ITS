@@ -86,7 +86,7 @@ public:
     Pose pose() const override;
 
     double boundingRadius() const override {
-        return 0.6 * std::max(params_.length, params_.width);
+        return std::max(params_.length, params_.width);
     }
 
     void update(double dt, WorldContext& world) override;
@@ -176,7 +176,6 @@ private:
     double planning_start_time_ = 0.0;
     double lateral_progress_ = 0.0;
     double time_since_spawn_ = 0.0;
-    double lane_change_duration_ = 3.0;
 
     std::unordered_set<VehicleId> yielding_to_;
     std::unordered_map<VehicleId, double> received_requests_;

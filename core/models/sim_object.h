@@ -10,7 +10,7 @@ enum class ObjectType { Vehicle, TrafficLight, PedLight, Unknown };
 class WorldContext;
 
 class SimObject {
-   public:
+public:
     explicit SimObject(uint64_t id, ObjectType t) : id_(id), type_(t) {}
     virtual ~SimObject() = default;
 
@@ -29,11 +29,16 @@ class SimObject {
         Pose a = pose();
         Pose b = other.pose();
         double dx = b.x - a.x, dy = b.y - a.y;
-        double dist2 = dx * dx + dy * dy;
-        if (dist2 > viewDist * viewDist)
+        double dist = std::sqrt(dx * dx + dy * dy);
+
+        double maxViewDist = viewDist + other.boundingRadius() +
+                             boundingRadius();
+        if (dist > maxViewDist)
             return false;
+
         if (fovRad >= 3.14159)
-            return true;  // — считаем круговым
+            return true;
+
         double angle = std::atan2(dy, dx);
         double d = std::fabs(angleDiff(a.theta, angle));
         return d <= (fovRad * 0.5);
@@ -50,7 +55,7 @@ class SimObject {
 
     virtual void update(double dt, WorldContext& world) = 0;
 
-   protected:
+protected:
     static double angleDiff(double a, double b) {
         double d = std::fmod(b - a + 3.1415926535, 2 * 3.1415926535);
         if (d < 0)
@@ -58,9 +63,9 @@ class SimObject {
         return d - 3.1415926535;
     }
 
-   private:
+private:
     uint64_t id_;
     ObjectType type_;
 };
 
-}  // namespace sim
+} // namespace sim
