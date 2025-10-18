@@ -15,12 +15,23 @@ const renderer = createRenderer(canvas);
 const scene = new THREE.Scene();
 const camera = createCamera();
 
+
+/**
+ * Возвращает ГРУППУ одной стороны бордюра, исходящей из центра.
+ * По умолчанию длина = 4 блока. Всё в метрах, Z — вверх.
+ */
+
+
 // 3) Свет
 createLights(scene);
 
 // 4) Мир (дорога как картинка + машины)
 const world = new World();
-// передадим renderer, чтобы world выставил max anisotropy на текстуре
+
+world.setCurbParams({ span: 25 });
+world.setCurbParams({ shift: 32 }); // ← сколько «отодвинуть» от центра перекрёстка
+world.setCurbParams({ offset:  7 });
+
 world.attachRenderer(renderer);
 scene.add(world.group);
 

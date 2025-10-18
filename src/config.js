@@ -4,7 +4,6 @@ export const WORLD = { size: 100, half: 50 };
 export const TEXTURE = {
   meters: 100,
   pixels: 5000,
-  url: "/ллл.png",
   layers: {
     base: "src/road/base.png",
     markings: "src/road/markings.png",

@@ -69,7 +69,7 @@ export class VoxelCar extends THREE.Group {
     const L = 2.6;   // длина
     const W = 1.8;   // ширина
     const H = 1.0;   // высота борта без крыши
-    const roofH = 0.8;
+    const roofH = 0.7;
 
     // базовая тень-платформа
     this.add(box(L * 0.98, W * 0.98, 0.06, M.shadow, 0, 0, 0.03));
