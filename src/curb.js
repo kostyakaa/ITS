@@ -1,7 +1,5 @@
-// curbLines.js
 import * as THREE from "three";
 
-/** внутренняя: одна лента бордюра вдоль +X (старт в x=0, конец в x=len) */
 function buildCurbStrip(len, {
   depth = 0.34, baseH = 0.08, stoneH = 0.16, tileLen = 0.9, gap = 0.02,
   colors = { base: 0x8a8f98, light: 0xe8edef, dark: 0x7e848c }
@@ -30,17 +28,7 @@ function buildCurbStrip(len, {
   return g;
 }
 
-/**
- * ДВЕ ленты бордюра вдоль ОДНОЙ дороги (лево/право от оси).
- * Центр пары лент смещается вдоль дороги на `shift`.
- *
- * center — точка пересечения дорог.
- * angle  — направление дороги (рад), 0 = вдоль +X.
- * span   — полудлина от центра ленты до её края (итоговая длина = 2*span).
- * offset — расстояние от оси дороги до каждой ленты (по нормали).
- * shift  — СДВИГ от центра вдоль дороги (м). Положительный — в сторону angle.
- * z      — высота над плоскостью.
- */
+
 export function makeRoadCurbs({
   center = new THREE.Vector3(0,0,0),
   angle = 0,
@@ -90,7 +78,6 @@ export function makeCrossCurbs(opts = {}) {
   const angle = opts.angle ?? 0;
   const shift = opts.shift ?? 0;
 
-  // первая дорога (angle): ±shift
   if (Math.abs(shift) > 1e-6) {
     g.add(makeRoadCurbs({ ...opts, shift: +shift }));
     g.add(makeRoadCurbs({ ...opts, shift: -shift }));
@@ -98,7 +85,6 @@ export function makeCrossCurbs(opts = {}) {
     g.add(makeRoadCurbs({ ...opts, shift: 0 }));
   }
 
-  // вторая дорога (перпендикуляр): ±shift
   const optsB = { ...opts, angle: angle + Math.PI/2 };
   if (Math.abs(shift) > 1e-6) {
     g.add(makeRoadCurbs({ ...optsB, shift: +shift }));

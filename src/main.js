@@ -28,9 +28,7 @@ createLights(scene);
 // 4) Мир (дорога как картинка + машины)
 const world = new World();
 
-world.setCurbParams({ span: 25 });
-world.setCurbParams({ shift: 32 }); // ← сколько «отодвинуть» от центра перекрёстка
-world.setCurbParams({ offset:  7 });
+
 
 world.attachRenderer(renderer);
 scene.add(world.group);

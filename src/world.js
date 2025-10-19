@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WORLD, LANES, TEXTURE } from './config.js';
 import { VoxelCar as Car } from './voxelCar.js';
 import { makeCrossCurbs } from './curb.js';
+import { makeCrossSidewalks } from './sidewalk.js';   // ← добавили
 
 const HALF = WORLD.half;
 
@@ -64,16 +65,26 @@ export class World {
 
     this._roadMesh = null;
 
-    // Параметры бордюр-ЛИНИЙ
-    this.curbs = {
+    this.inlineCurbs = {
       angle: 0,
-      span: 25,                          // ты подобрал 25
-      offset: 7,                         // и 7
-      shift: 12,                         // ← НОВОЕ: сдвиг от центра вдоль дороги (м)
+      span: 25,
+      offset: 12,
+      shift: 36.5,
+      z: 0.00,
+      strip: { depth: 0.34, baseH: 0.08, stoneH: 0.32, tileLen: 0.90, gap: 0.02 },
+    };
+
+    this.outlineCurbs = {
+      angle: 0,
+      span: 25,
+      offset: 7,
+      shift: 32,
       z: 0.00,
       strip: { depth: 0.34, baseH: 0.08, stoneH: 0.16, tileLen: 0.90, gap: 0.02 },
     };
+
     this._curbGroup = null;
+    this._sidewalkGroup = null; // ← добавили хранение тротуаров
 
     this._build();
   }
@@ -91,6 +102,7 @@ export class World {
   async _build(){
     await this._buildRoad();
     this._buildCurbs();
+    this._buildSidewalks();     // ← строим тротуары
     this._demoOneCar();
   }
 
@@ -138,22 +150,51 @@ export class World {
   }
 
   _buildCurbs(){
-    if (this._curbGroup) this.group.remove(this._curbGroup);
+    if (this._outlineCurbGroup) this.group.remove(this._outlineCurbGroup);
+    if (this._inlineCurbGroup) this.group.remove(this._inlineCurbGroup);
 
-    const angle = this.curbs.angle ?? (this._roadMesh?.rotation.z ?? 0);
-    const center = new THREE.Vector3(0,0,0);
-
-    this._curbGroup = makeCrossCurbs({
-      center,
-      angle,
-      span: this.curbs.span,
-      offset: this.curbs.offset,
-      shift: this.curbs.shift,    // << новый параметр
-      z: this.curbs.z,
-      strip: this.curbs.strip
+    this._outlineCurbGroup = makeCrossCurbs({
+      span: this.outlineCurbs.span,
+      offset: this.outlineCurbs.offset,
+      shift: this.outlineCurbs.shift,
+      z: this.outlineCurbs.z,
+      strip: this.outlineCurbs.strip
     });
-    this._curbGroup.position.z = 0.0;
-    this.group.add(this._curbGroup);
+
+    this._inlineCurbGroup = makeCrossCurbs({
+      span: this.inlineCurbs.span,
+      offset: this.inlineCurbs.offset,
+      shift: this.inlineCurbs.shift,
+      z: this.inlineCurbs.z,
+      strip: this.inlineCurbs.strip
+    });
+
+    this.group.add(this._outlineCurbGroup);
+    this.group.add(this._inlineCurbGroup);
+  }
+
+  // === тротуары ===
+  _buildSidewalks(){
+    if (this._sidewalkGroup) this.group.remove(this._sidewalkGroup);
+
+    // параметры между двумя бордюрами
+    const offA = Math.min(this.outlineCurbs.offset, this.inlineCurbs.offset);
+    const offB = Math.max(this.outlineCurbs.offset, this.inlineCurbs.offset);
+    const span = Math.max(this.outlineCurbs.span, this.inlineCurbs.span);
+    const shift = Math.max(Math.abs(this.outlineCurbs.shift), Math.abs(this.inlineCurbs.shift));
+
+    this._sidewalkGroup = makeCrossSidewalks({
+      angle: 0,
+      span,
+      offsetA: offA,
+      offsetB: offB,
+      shift ,
+      z: this.outlineCurbs.z,
+      curbDepth: this.outlineCurbs.strip?.depth ?? 0.34,
+      h: 0.32,
+    });
+
+    this.group.add(this._sidewalkGroup);
   }
 
   // Поиграться параметрами
@@ -164,6 +205,7 @@ export class World {
     if (Number.isFinite(shift))  this.curbs.shift  = shift;
     if (Number.isFinite(z))      this.curbs.z      = z;
     this._buildCurbs();
+    this._buildSidewalks();
   }
 
   _demoOneCar(){
