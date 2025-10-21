@@ -61,7 +61,7 @@ class Session:
                 nonlocal buffer, bytes_count
                 if not buffer:
                     return
-
+                print(buffer)
                 payload = json.dumps({"type": "batch", "lines": buffer})
                 await self.ws.send(payload)
                 buffer = []
