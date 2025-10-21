@@ -1,0 +1,127 @@
+from dataclasses import dataclass, field
+from typing import Optional, List
+import contextlib
+import websockets
+import asyncio
+import json
+
+from ..config import *
+from ..utils import kill_process_tree
+
+
+@dataclass
+class Session:
+    ws: websockets.WebSocketServerProtocol
+    session_id: str
+    cmd: List[str] = field(default_factory=lambda: ["./test"])
+    proc: Optional[asyncio.subprocess.Process] = None
+    out_queue: asyncio.Queue = field(default_factory=lambda: asyncio.Queue(maxsize=OUT_QUEUE_MAXSIZE))
+    read_stdout_task: Optional[asyncio.Task] = None
+    batch_sender_task: Optional[asyncio.Task] = None
+    stdin_pump_task: Optional[asyncio.Task] = None
+    closed: bool = False
+
+    async def start(self):
+        self.proc = await asyncio.create_subprocess_exec(
+            *self.cmd,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT
+        )
+
+        self.read_stdout_task = asyncio.create_task(self._read_stdout())
+        self.batch_sender_task = asyncio.create_task(self._batch_sender())
+        self.stdin_pump_task = asyncio.create_task(self._stdin_pump())
+
+    async def _read_stdout(self):
+        assert self.proc and self.proc.stdout
+        reader = self.proc.stdout
+        try:
+            while True:
+                line = await reader.readline()
+                if not line:
+                    await self.out_queue.put("[SIM] <EOF>")
+                    break
+                text = line.decode('utf-8', errors='replace').rstrip("\r\n")
+                try:
+                    self.out_queue.put_nowait(text)
+                except asyncio.QueueFull:
+                    pass
+        except Exception as e:
+            await self.out_queue.put(f"[SIM] <reader error: {e}>")
+
+    async def _batch_sender(self):
+        """Отправляет сообщения клиенту батчами в JSON: {"type":"batch","lines":[...]}"""
+        try:
+            buffer: List[str] = []
+            bytes_count = 0
+            flush_interval = FLUSH_INTERVAL_MS / 1000.0
+
+            async def flush():
+                nonlocal buffer, bytes_count
+                if not buffer:
+                    return
+
+                payload = json.dumps({"type": "batch", "lines": buffer})
+                await self.ws.send(payload)
+                buffer = []
+                bytes_count = 0
+
+            while True:
+                try:
+                    get_task = asyncio.create_task(self.out_queue.get())
+                    done, pending = await asyncio.wait(
+                        {get_task},
+                        timeout=flush_interval,
+                        return_when=asyncio.FIRST_COMPLETED
+                    )
+                    if get_task in done:
+                        line = get_task.result()
+                        buffer.append(line)
+                        bytes_count += len(line.encode('utf-8')) + 1
+                    else:
+                        get_task.cancel()
+
+                    if buffer:
+                        await flush()
+
+                    if self.proc and self.proc.returncode is not None and self.out_queue.empty():
+                        break
+
+                except websockets.ConnectionClosed:
+                    break
+        finally:
+            pass
+
+    async def _stdin_pump(self):
+        """Слушает WS и отправляет всё в stdin симуляции."""
+        assert self.proc and self.proc.stdin
+        writer = self.proc.stdin
+        try:
+            async for message in self.ws:
+                if isinstance(message, bytes):
+                    data = message
+                else:
+                    data = (message + "\n").encode("utf-8")
+                try:
+                    writer.write(data)
+                    await writer.drain()
+                except (BrokenPipeError, ConnectionResetError):
+                    break
+        except websockets.ConnectionClosed:
+            pass
+        finally:
+            with contextlib.suppress(Exception):
+                writer.close()
+
+    async def close(self):
+        if self.closed:
+            return
+        self.closed = True
+
+        for t in (self.stdin_pump_task, self.read_stdout_task, self.batch_sender_task):
+            if t:
+                t.cancel()
+
+        if self.proc:
+            await kill_process_tree(self.proc, grace_s=1.0)
