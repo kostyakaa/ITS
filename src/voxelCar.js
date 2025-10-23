@@ -1,10 +1,6 @@
 import * as THREE from "three";
 
-// импортируем функцию и текстуру для контактной тени из vehicles.js. Мы
-// воспользуемся тем же механизмом для тени под воксельной машинкой. Это
-// предотвращает дублирование кода и повышает визуальное единообразие.
 
-// простой градиент для toon-материала
 function makeToonGradient() {
   const c = document.createElement("canvas");
   c.width = 4; c.height = 1;
@@ -22,7 +18,6 @@ function makeToonGradient() {
 }
 const TOON = makeToonGradient();
 
-// утилита
 function box(w, d, h, mat, x, y, z) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, d, h), mat);
   m.position.set(x, y, z);
@@ -30,15 +25,11 @@ function box(w, d, h, mat, x, y, z) {
   return m;
 }
 
-/**
- * Воксельная машинка в стиле Crossy Road.
- * 1 юнит = 1 метр. Габариты ~ 2.6m × 1.8m × 1.8m.
- */
+
 export class VoxelCar extends THREE.Group {
   constructor(colorHex = 0x25c7da) {
     super();
 
-    // палитра — яркая, «игровая»
     const C = {
       body: colorHex,                // бирюзовый кузов
       bodyDark: 0x19aabe,            // низ кузова
@@ -51,7 +42,6 @@ export class VoxelCar extends THREE.Group {
       accent: 0x1bb6c8,              // нос/хвост
     };
 
-    // материалы (toon для всего, кроме стекла)
     const M = {
       body:   new THREE.MeshToonMaterial({ color: C.body,    gradientMap: TOON }),
       bodyD:  new THREE.MeshToonMaterial({ color: C.bodyDark,gradientMap: TOON }),

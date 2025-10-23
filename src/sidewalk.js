@@ -1,14 +1,12 @@
 import * as THREE from "three";
 
-/* =================== Procedural SLAB paver textures (BIG tiles) ===================
-   600x600 mm concrete slabs in a square grid with grout, subtle color
-   jitter, edge darkening, normal and roughness maps. */
+
 function makeSlabPaverSet({
-  size = 512,            // atlas resolution
-  slab = 0.60,           // meters — slab size (square)
-  grout = 0.012,         // meters — grout width
-  bevel = 0.010,         // meters — bevel towards grout
-  palette = [            // gentle cold-grey palette
+  size = 512,
+  slab = 0.60,
+  grout = 0.012,
+  bevel = 0.010,
+  palette = [
     [206, 210, 214],
     [198, 202, 206],
     [191, 195, 199]
@@ -22,20 +20,17 @@ function makeSlabPaverSet({
   const nctx = N.getContext('2d');
   const rctx = R.getContext('2d');
 
-  const m2px = size / 1.0; // 1m mapped to whole atlas
+  const m2px = size / 1.0;
   const s = Math.max(4, Math.round(slab * m2px));
   const g = Math.max(1, Math.round(grout * m2px));
   const bev = Math.max(1, Math.round(bevel * m2px));
 
-  // grout background
   ctx.fillStyle = `rgb(${groutCol[0]},${groutCol[1]},${groutCol[2]})`;
   ctx.fillRect(0, 0, size, size);
 
-  // how many slabs per atlas side
   const step = s + g;
   const count = Math.ceil(size / step) + 1;
 
-  // draw grid of slabs
   const rand = (a, b) => a + Math.random() * (b - a);
   for (let iy = 0; iy < count; iy++) {
     for (let ix = 0; ix < count; ix++) {
@@ -46,20 +41,16 @@ function makeSlabPaverSet({
       col[1] += Math.round(rand(-5, 5));
       col[2] += Math.round(rand(-5, 5));
 
-      // base fill
       ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
       ctx.fillRect(x0, y0, s, s);
 
-      // soft AO at edges
       const gradV = ctx.createLinearGradient(x0, y0, x0, y0 + s);
       gradV.addColorStop(0, 'rgba(0,0,0,0.025)');
       gradV.addColorStop(0.5, 'rgba(0,0,0,0)');
       gradV.addColorStop(1, 'rgba(0,0,0,0.025)');
       ctx.fillStyle = gradV; ctx.fillRect(x0, y0, s, s);
 
-      // (no speckles for a cleaner minimal look)
 
-      // height buffer (alpha) for bevel
       const hbuf = nctx.createImageData(s, s);
       for (let yy = 0; yy < s; yy++) {
         for (let xx = 0; xx < s; xx++) {
@@ -71,7 +62,6 @@ function makeSlabPaverSet({
       }
       nctx.putImageData(hbuf, x0, y0);
 
-      // roughness: edges rougher
       const rimg = rctx.createImageData(s, s);
       for (let i = 0; i < s * s; i++) {
         const yy = (i / s) | 0, xx = i % s;
@@ -84,7 +74,6 @@ function makeSlabPaverSet({
     }
   }
 
-  // normals from alpha height
   const height = nctx.getImageData(0, 0, size, size);
   const nimg = nctx.createImageData(size, size);
   const getH = (x, y) => { x = Math.max(0, Math.min(size - 1, x)); y = Math.max(0, Math.min(size - 1, y)); return height.data[(y * size + x) * 4 + 3] / 255; };
@@ -120,9 +109,8 @@ function buildMaterialFromSet(texSet, len, w, metersPerSlab = 0.60) {
     metalness: 0.0,
   });
   mat.map = texSet.color; mat.normalMap = texSet.normal; mat.roughnessMap = texSet.rough;
-  // clone repeats per material so different pieces can have their own tiling
   mat.map = mat.map; mat.normalMap = mat.normalMap; mat.roughnessMap = mat.roughnessMap;
-  mat.map = mat.map; // no-op but keeps intention clear
+  mat.map = mat.map;
   mat.map.repeat = new THREE.Vector2(repX, repY);
   mat.normalMap.repeat = new THREE.Vector2(repX, repY);
   mat.roughnessMap.repeat = new THREE.Vector2(repX, repY);
@@ -137,8 +125,8 @@ function buildMaterialFromSet(texSet, len, w, metersPerSlab = 0.60) {
 function applyWorldAlignedUV(mat, mesh, metersPerSlab){
   const texs = [mat.map, mat.normalMap, mat.roughnessMap].filter(Boolean);
   for(const t of texs){
-    t.matrixAutoUpdate = true; // ensure three updates the matrix from offset/rotation/repeat
-    t.rotation = -mesh.rotation.z; // keep grid aligned to world axes
+    t.matrixAutoUpdate = true;
+    t.rotation = -mesh.rotation.z;
     let offX = (-mesh.position.x / metersPerSlab);
     let offY = (-mesh.position.y / metersPerSlab);
     offX = ((offX % 1) + 1) % 1;
@@ -157,7 +145,7 @@ function makeSidewalkStrips({
   curbDepth = 0.34,
   h = 0.08,
   material = null,
-  extendAtCenter = 0.20,   // небольшое перекрытие в центре
+  extendAtCenter = 0.20,
   zBias = 0.0,
   texSet = null,
 } = {}){
@@ -184,7 +172,6 @@ function makeSidewalkStrips({
   return g;
 }
 
-/* ---- Corner patches ALIGNED with the roads (NO 45° rotation) ---- */
 function makeCornerPatchesAligned({
   angle = 0,
   offsetA = 7,
@@ -193,18 +180,18 @@ function makeCornerPatchesAligned({
   curbDepth = 0.34,
   h = 0.08,
   material = null,
-  overlap = 0.06, // м — чуть заходим на полосы, чтобы не было щелей
+  overlap = 0.06,
   texSet = null,
 } = {}){
   const g = new THREE.Group();
   const along = new THREE.Vector2(Math.cos(angle), Math.sin(angle));
   const normal = new THREE.Vector2(-along.y, along.x);
-  const perpAlong = new THREE.Vector2(-along.y, along.x); // направление перпендикулярной
+  const perpAlong = new THREE.Vector2(-along.y, along.x);
   const perpNormal = new THREE.Vector2(-perpAlong.y, perpAlong.x);
 
   const w = Math.max(0.02, Math.abs(offsetB - offsetA) - curbDepth) + overlap*2;
   const mid = (offsetA + offsetB) * 0.5;
-  const len = w; // квадрат, но без поворота — ориентирован как полосы
+  const len = w;
   const mat = material || (texSet ? buildMaterialFromSet(texSet, len, w) : null) || makeSidewalkMaterial(len, w);
 
   const build = (sx, sy) => {
@@ -214,8 +201,7 @@ function makeCornerPatchesAligned({
       .addScaledVector(normal, sx*mid)
       .addScaledVector(perpNormal, sy*mid);
     m.position.set(pos.x, pos.y, z + h/2 - 0.01 + 0.0012);
-    // совпадает с мировыми осями (без 45°)
-    m.rotation.z = 0; // ориентируем как глобальные X/Y, выглядит «ровным квадратом»
+    m.rotation.z = 0;
     applyWorldAlignedUV(mat, m, 0.60);
     return m;
   };
@@ -224,7 +210,6 @@ function makeCornerPatchesAligned({
   return g;
 }
 
-/** Cross set: 8 strips + 4 aligned corner patches (no 45°). */
 export function makeCrossSidewalks(opts = {}){
   const g = new THREE.Group();
   const shift = opts.shift ?? 0;

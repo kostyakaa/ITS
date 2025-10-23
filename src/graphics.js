@@ -15,17 +15,14 @@ export function createRenderer(canvas) {
   } else if ("outputEncoding" in renderer) {
     renderer.outputEncoding = THREE.sRGBEncoding;
   }
-  // Используем ACES Filmic tone mapping для более насыщенных цветов и широкого динамического диапазона.
-  // Повышаем экспозицию, чтобы сцена была светлее и сочнее.
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+  renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.3;
 
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  // светлый травяной оттенок в фоне (подгоняем под цвет grassMid из config.js)
   renderer.setClearColor(0xb7e779, 1);
 
-  // мягкие тени
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -43,7 +40,7 @@ export function createCamera() {
     CAMERA.near || 0.1, CAMERA.far || 2000
   );
   cam.up.set(0, 0, 1);
-  cam.position.set(60, -60, 74);  // чуть выше и ближе
+  cam.position.set(60, -60, 70);
   cam.lookAt(0, 0, 0);
   return cam;
 }
@@ -61,11 +58,10 @@ export function addLights(scene) {
 
   // Directional light (солнце) с нейтральным оттенком и статичной позицией.
   const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-  sun.position.set(-80, -60, 120);
+  sun.position.set(-80, -60, 1000);
   sun.target.position.set(0, 0, 0);
 
   sun.castShadow = true;
-  // Улучшаем качество теней
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.near = 20;
   sun.shadow.camera.far = 300;
@@ -80,7 +76,6 @@ export function addLights(scene) {
   scene.add(sun.target);
 }
 
-// алиасы под твою сборку
 export const createLights = addLights;
 
 export function attachResize(renderer, camera) {

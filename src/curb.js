@@ -44,21 +44,17 @@ export function makeRoadCurbs({
   const left  = buildCurbStrip(len, strip);
   const right = buildCurbStrip(len, strip);
 
-  // базис дороги
   const cos = Math.cos(angle), sin = Math.sin(angle);
-  const t = new THREE.Vector2(cos, sin);      // вдоль
-  const n = new THREE.Vector2(-sin, cos);     // налево
+  const t = new THREE.Vector2(cos, sin);
+  const n = new THREE.Vector2(-sin, cos);
 
-  // середины лент (учитываем shift)
   const cx = center.x + t.x * shift, cy = center.y + t.y * shift;
   const midL = new THREE.Vector3(cx + n.x * offset, cy + n.y * offset, z);
   const midR = new THREE.Vector3(cx - n.x * offset, cy - n.y * offset, z);
 
-  // поворот лент
   const yaw = Math.atan2(t.y, t.x);
   left.rotation.z = yaw;  right.rotation.z = yaw;
 
-  // Позиция групп — В НАЧАЛО ленты (т.к. локальный 0 — это начало, а не центр)
   const startL = new THREE.Vector3(midL.x - t.x * (len/2), midL.y - t.y * (len/2), z);
   const startR = new THREE.Vector3(midR.x - t.x * (len/2), midR.y - t.y * (len/2), z);
   left.position.copy(startL);
@@ -69,10 +65,7 @@ export function makeRoadCurbs({
   return g;
 }
 
-/**
- * Перекрёсток: две дороги под прямым углом.
- * Здесь делаем ЗЕРКАЛЬНЫЕ копии ±shift для каждой дороги.
- */
+
 export function makeCrossCurbs(opts = {}) {
   const g = new THREE.Group();
   const angle = opts.angle ?? 0;
