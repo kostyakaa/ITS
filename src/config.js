@@ -4,10 +4,10 @@ export const TEXTURE = {
   meters: 100,
   pixels: 5000,
   layers: {
-    base: "src/road/base.png",
-    markings: "src/road/markings.png",
-    crosswalks: "src/road/crosswalks.png",
-    edges: "src/road/ao.png",
+    base: "./road/base.png",
+    markings: "./road/markings.png",
+    crosswalks: "./road/crosswalks.png",
+    edges: "./road/ao.png",
   },
 };
 
