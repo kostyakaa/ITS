@@ -36,9 +36,13 @@ API.init({
     { id: "tl-4", x: -10.5, y:  -7.5, z: 0.25, rot:  Math.PI,         color: "yellow" },
   ],
   cars: [
-    { id: "car-99", x:   3, y:   3, z: 0, rot: Math.PI },
+    { id: "car-69", x:   0, y:   0, z: 0, rot: Math.PI },
   ]
 });
+
+API.moveCar('car-1', { rot: Math.PI / 3 });
+API.setTrafficLightColor('tl-1', 'red');
+
 
 attachResize(renderer, camera);
 

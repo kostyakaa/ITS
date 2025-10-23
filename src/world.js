@@ -1,25 +1,25 @@
-import * as THREE from "three";
-import { WORLD, TEXTURE } from "./config.js";
-import { VoxelCar as Car } from "./voxelCar.js";
-import { makeCrossCurbs } from "./curb.js";
-import { makeCrossSidewalks } from "./sidewalk.js";
-import {
-  makeTrafficLight,
-  setTrafficLightState,
-  setDiscState,
-} from "./trafficLight.js";
+// world.js
+import * as THREE from 'three';
+import { WORLD, TEXTURE } from './config.js';
+import { VoxelCar as Car } from './voxelCar.js';
+import { makeCrossCurbs } from './curb.js';
+import { makeCrossSidewalks } from './sidewalk.js';
+import { makeTrafficLight, setTrafficLightState, setDiscState } from './trafficLight.js';
 
-function normAngle(radOrDeg) {
-  if (!Number.isFinite(radOrDeg)) return null;
-  const v = Math.abs(radOrDeg);
-  const asRad = v > (Math.PI * 2 + 1e-3) ? (radOrDeg * Math.PI / 180) : radOrDeg;
-  return asRad;
+// ——————————————————————————————————————————
+// utils
+// ——————————————————————————————————————————
+function toRad(angle) {
+  if (angle == null) return null;
+  const n = (typeof angle === 'string') ? parseFloat(angle) : angle;
+  if (!isFinite(n)) return null;
+  return Math.abs(n) > (Math.PI * 2 + 1e-3) ? (n * Math.PI / 180) : n;
 }
 
 function setupTexture(renderer, tex) {
   if (!tex) return null;
-  if ("SRGBColorSpace" in THREE) tex.colorSpace = THREE.SRGBColorSpace;
-  else if ("sRGBEncoding" in THREE) tex.encoding = THREE.sRGBEncoding;
+  if ('SRGBColorSpace' in THREE) tex.colorSpace = THREE.SRGBColorSpace;
+  else if ('sRGBEncoding' in THREE) tex.encoding = THREE.sRGBEncoding;
   const aniso = renderer?.capabilities?.getMaxAnisotropy?.() ?? 8;
   tex.anisotropy = Math.max(8, aniso);
   tex.wrapS = THREE.ClampToEdgeWrapping;
@@ -27,29 +27,43 @@ function setupTexture(renderer, tex) {
   return tex;
 }
 
+// ——————————————————————————————————————————
+// basic scene object wrappers
+// ——————————————————————————————————————————
 class SceneObject {
   constructor(mesh = new THREE.Group()) {
     this.node = mesh;
     this.node.matrixAutoUpdate = true;
   }
-  addTo(parent) { parent.add(this.node); return this; }
-  setPosition(x, y, z = 0) { this.node.position.set(x, y, z); return this; }
-  setRotationZ(rad) { this.node.rotation.z = rad || 0; return this; }
+  addTo(parent){ parent.add(this.node); return this; }
+  setPosition(x,y,z=0){ this.node.position.set(x,y,z); return this; }
+  setRotationZ(rad){ this.node.rotation.z = rad || 0; return this; }
 }
 
 class CarObject extends SceneObject {
-  constructor() { super(new Car()); }
+  constructor() {
+    const pivot = new THREE.Group();       // внешний пивот для yaw
+    const mesh = new Car();                // внутренняя модель
+    pivot.add(mesh);
+    super(pivot);
+    this.mesh = mesh;
+  }
 }
 
+// ——————————————————————————————————————————
+// world
+// ——————————————————————————————————————————
 export class World {
   constructor() {
     this.group = new THREE.Group();
     this.clock = new THREE.Clock();
     this.renderer = null;
 
-    this.cars = new Map();
-    this.lights = new Map();
+    // entities by id
+    this.cars = new Map();   // id -> CarObject
+    this.lights = new Map(); // id -> THREE.Group (traffic light)
 
+    // env meshes
     this._road = null;
     this._curbsOuter = null;
     this._curbsInner = null;
@@ -58,7 +72,6 @@ export class World {
     this.server = {
       init: (payload = {}) => this._apiInit(payload),
       update: (changes = {}) => this._apiUpdate(changes),
-
       createTrafficLight: (id, opts = {}) => this._createTrafficLight(id, opts),
       createCar: (id, opts = {}) => this._createCar(id, opts),
       setTrafficLightColor: (id, color) => this._setTrafficLightColor(id, color),
@@ -68,20 +81,20 @@ export class World {
     this._build();
   }
 
-  attachRenderer(renderer) { this.renderer = renderer; }
+  attachRenderer(renderer){ this.renderer = renderer; }
 
-  async _build() {
+  async _build(){
     await this._buildRoad();
     this._buildCurbsAndSidewalks();
   }
 
-  async _buildRoad() {
+  async _buildRoad(){
     const load = (url) => new Promise((res) => {
       if (!url) return res(null);
       new THREE.TextureLoader().load(url, (t) => res(setupTexture(this.renderer, t)), undefined, () => res(null));
     });
 
-    const [base, markings, crosswalks, edges] = await Promise.all([
+    const [base,markings,crosswalks,edges] = await Promise.all([
       load(TEXTURE.layers?.base || TEXTURE.url),
       load(TEXTURE.layers?.markings),
       load(TEXTURE.layers?.crosswalks),
@@ -91,24 +104,24 @@ export class World {
     const seed = base || markings || crosswalks || edges;
     const sizeMeters = TEXTURE.meters ?? WORLD.size;
 
-    let colorMap = null, dispMap = null;
+    let colorMap=null, dispMap=null;
     if (seed?.image) {
       const w = seed.image.width, h = seed.image.height;
-
-      const c = document.createElement("canvas"); c.width = w; c.height = h;
-      const ctx = c.getContext("2d");
-      if (base?.image) ctx.drawImage(base.image, 0, 0, w, h);
-      if (markings?.image) ctx.drawImage(markings.image, 0, 0, w, h);
-      if (crosswalks?.image) { ctx.globalAlpha = 0.9; ctx.drawImage(crosswalks.image, 0, 0, w, h); ctx.globalAlpha = 1; }
-      if (edges?.image) ctx.drawImage(edges.image, 0, 0, w, h);
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx = c.getContext('2d');
+      if (base?.image) ctx.drawImage(base.image,0,0,w,h);
+      if (markings?.image) ctx.drawImage(markings.image,0,0,w,h);
+      if (crosswalks?.image){ ctx.globalAlpha=0.9; ctx.drawImage(crosswalks.image,0,0,w,h); ctx.globalAlpha=1; }
+      if (edges?.image) ctx.drawImage(edges.image,0,0,w,h);
       colorMap = setupTexture(this.renderer, new THREE.CanvasTexture(c));
 
-      if (markings?.image || crosswalks?.image) {
-        const d = document.createElement("canvas"); d.width = w; d.height = h;
-        const dctx = d.getContext("2d");
-        dctx.fillStyle = "rgb(0,0,0)"; dctx.fillRect(0, 0, w, h);
-        if (markings?.image) dctx.drawImage(markings.image, 0, 0, w, h);
-        if (crosswalks?.image) dctx.drawImage(crosswalks.image, 0, 0, w, h);
+      if (markings?.image || crosswalks?.image){
+        const d = document.createElement('canvas'); d.width=w; d.height=h;
+        const dctx = d.getContext('2d');
+        dctx.fillStyle = 'rgb(0,0,0)';
+        dctx.fillRect(0,0,w,h);
+        if (markings?.image) dctx.drawImage(markings.image,0,0,w,h);
+        if (crosswalks?.image) dctx.drawImage(crosswalks.image,0,0,w,h);
         dispMap = setupTexture(this.renderer, new THREE.CanvasTexture(d));
       }
     }
@@ -120,15 +133,16 @@ export class World {
       metalness: 0, roughness: 0.9,
       map: colorMap || null,
       displacementMap: dispMap || null,
-      displacementScale: dispMap ? ((TEXTURE.meters / (TEXTURE.pixels || 5000)) * 2.0) : 0,
+      displacementScale: dispMap ? ((TEXTURE.meters/(TEXTURE.pixels||5000))*2.0) : 0,
     });
     const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.z = -0.01; mesh.receiveShadow = true;
+    mesh.position.z = -0.01;
+    mesh.receiveShadow = true;
     this.group.add(mesh);
     this._road = mesh;
   }
 
-  _buildCurbsAndSidewalks() {
+  _buildCurbsAndSidewalks(){
     const inner = makeCrossCurbs({
       span: 25, offset: 11, shift: 35.5, z: 0.00,
       strip: { depth: 0.34, baseH: 0.08, stoneH: 0.32, tileLen: 0.90, gap: 0.02 },
@@ -147,7 +161,9 @@ export class World {
     this.group.add(sidewalks); this._sidewalks = sidewalks;
   }
 
-
+  // ——————————————————————————————————————————
+  // server API impl
+  // ——————————————————————————————————————————
   _apiInit(payload = {}) {
     if (Array.isArray(payload.lights)) {
       for (const L of payload.lights) {
@@ -179,28 +195,23 @@ export class World {
     }
   }
 
-  /** Создать/обновить светофор по id. */
-  _createTrafficLight(id, { x = 0, y = 0, z = 0, rot = 0, color = "red" } = {}) {
+  _createTrafficLight(id, { x = 0, y = 0, z = 0, rot = 0, color = 'red' } = {}) {
     let tl = this.lights.get(id);
     if (!tl) {
-      tl = makeTrafficLight({ up: "z" });
+      tl = makeTrafficLight({ up: 'z' });
       this.group.add(tl);
       this.lights.set(id, tl);
     }
-    const yaw = normAngle(rot) ?? 0;
-    tl.position.set(x, y, z);
-    // ВАЖНО: поворот по yaw → ось Z
-    tl.rotation.z = yaw;
-
-    // никакой автосмены — фиксируем цвет
-    tl.userData._discCycle = null;
+    const yaw = toRad(rot) ?? 0;
+    tl.position.set(Number(x)||0, Number(y)||0, Number(z)||0);
+    tl.rotation.z = yaw; // yaw around Z
+    tl.userData._discCycle = null; // freeze any cycle
     setTrafficLightState(tl, color);
     setDiscState(tl, color);
     return tl;
   }
 
-  /** Поставить фиксированный цвет светофора. */
-  _setTrafficLightColor(id, color /* 'red'|'yellow'|'green' */) {
+  _setTrafficLightColor(id, color) {
     const tl = this.lights.get(id);
     if (!tl) return false;
     tl.userData._discCycle = null;
@@ -209,27 +220,31 @@ export class World {
     return true;
   }
 
-  /** Создать/обновить машинку по id. */
   _createCar(id, { x = 0, y = 0, z = 0, rot = 0 } = {}) {
     let obj = this.cars.get(id);
     if (!obj) {
       obj = new CarObject().addTo(this.group);
       this.cars.set(id, obj);
     }
-    const yaw = normAngle(rot) ?? 0;
-    obj.setPosition(x, y, z).setRotationZ(yaw);
+    const yaw = toRad(rot) ?? 0;
+    obj.setPosition(Number(x)||0, Number(y)||0, Number(z)||0).setRotationZ(yaw);
+    obj.node.updateMatrixWorld(true);
     return obj;
   }
 
   _moveCar(id, { x, y, z = 0, rot = null } = {}) {
     const obj = this.cars.get(id);
     if (!obj) return false;
-    if (Number.isFinite(x) && Number.isFinite(y)) obj.setPosition(x, y, z);
-    if (Number.isFinite(rot)) obj.setRotationZ(normAngle(rot));
+    if (x != null && y != null) obj.setPosition(Number(x), Number(y), Number(z ?? 0));
+    if (rot != null) {
+      const yaw = toRad(rot);
+      if (yaw != null) obj.setRotationZ(yaw);
+    }
+    obj.node.updateMatrixWorld(true);
     return true;
   }
 
-  update() {
-    this.clock.getDelta();
+  update(){
+    this.clock.getDelta(); // reserved for future animations
   }
 }

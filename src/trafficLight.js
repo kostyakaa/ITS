@@ -95,7 +95,7 @@ export function makeTrafficLight({ up = 'z' } = {}) {
   const poleR = 0.055;
 
   const bodyW = 0.5, bodyH = 0.58, bodyD = 0.18;
-  const radius = 0.06;
+  const radius = 0.09;
   const lensR = 0.22, lensD = 0.12, visorD = 0.26;
   const spacing = 0.10;
 
@@ -210,7 +210,7 @@ function ensureDisc(group, radiusScale = 0.75, color = 0xff5050) {
     return disc;
   }
   const geo = new THREE.CircleGeometry(0.13, 48);
-  const mat = new THREE.MeshBasicMaterial({ color, depthTest: false, side: THREE.DoubleSide });
+  const mat = new THREE.MeshBasicMaterial({ color, depthTest: true, side: THREE.DoubleSide });
   const disc = new THREE.Mesh(geo, mat);
   disc.rotation.y = -Math.PI/2;
   group.userData._discMesh = disc;
