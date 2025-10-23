@@ -17,13 +17,13 @@ cd ITS
 npm install
 ```
 
-## Запуск разработки
+## Запуск dev-версии
 ```bash
 npm run dev
 ```
 По умолчанию: http://localhost:5173
 
-## Сборка продакшн
+## Сборка продакшна
 ```bash
 npm run build
 ```
