@@ -1,12 +1,22 @@
 import json
 from typing import Optional
-
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
 from .models import SessionManager, Session
 from config import BIN_PATH
 
 app = FastAPI()
 manager = SessionManager()
+static_dir = os.path.join(os.path.dirname(__file__), "static", "dist")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+@app.get("/")
+async def root():
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
 
 @app.websocket("/ws")
