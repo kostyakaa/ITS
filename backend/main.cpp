@@ -29,7 +29,7 @@ int main() {
 
     std::thread printer_thread([&]() {
         while (running) {
-            std::cout << "[printer] meow" << std::endl;
+            std::cout << "[printer] meow 2" << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     });
