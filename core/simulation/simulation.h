@@ -31,10 +31,19 @@ class Simulation {
                         const Goal& goal, double s0 = 0.0) {
         RouteTracker route(&network_);
         route.setGoalAndPlan(startLane, goal, pathfinder_);
-        vehicles_.emplace_back(static_cast<int>(vehicles_.size()) + 1, params,
+        vehicles_.emplace_back(params,
                                driver, startLane, s0, 0.0, std::move(route));
         syncVehicles();
         return vehicles_.back();
+    }
+
+    void addRandomVehicle() {
+        auto rt = getRandomRoute();
+        if (rt.first == -1) {
+            return;
+        }
+        vehicles_.emplace_back(Vehicle::randomVehicle(rt.first, rt.second));
+        syncVehicles();
     }
 
     void update(double dt) {
@@ -147,6 +156,7 @@ class Simulation {
     std::vector<RouteTracker> routes_;
     WorldContext world_;
     Pathfinder pathfinder_;
+    RNG rngg{32424};
 
     void syncVehicles() {
         vehicle_ptrs_.clear();
@@ -156,6 +166,53 @@ class Simulation {
         for (auto& v : objects_)
             object_ptrs_.push_back(v);
     }
+
+    std::pair<LaneId, RouteTracker> getRandomRoute() {
+        std::vector<int> startLanes = {2, 4, 6, 8, 10, 12,}; //  14, 16
+        std::vector<int> endLanes = {1, 3, 5, 7, 9, 11, 13, 15};
+        std::vector<int> freeLanes;
+        for (int laneId : startLanes) {
+            bool isOccupied = false;
+            for (Vehicle veh : vehicles_) {
+                if (veh.laneId() == laneId) {
+                    if (veh.s() < 5) {
+                        isOccupied = true;
+                        break;
+                    }
+                }
+            }
+            if (!isOccupied) {
+                freeLanes.push_back(laneId);
+            }
+        }
+        if (freeLanes.empty()) {
+            return {-1, RouteTracker(&network_)};
+        }
+
+        LaneId startLane = rngg.uniform(0, freeLanes.size() - 1);
+
+
+        // выбрали startLane ранее
+        int k = (freeLanes[startLane] - 2) / 4;           // индекс блока {2,4},{6,8},{10,12},...
+        int forbid1 = 4 * k + 1;               // первая запрещённая
+        int forbid2 = 4 * k + 3;               // вторая запрещённая
+
+        std::vector<int> allowedEndLanes;
+        allowedEndLanes.reserve(endLanes.size());
+        for (int laneId : endLanes) {
+            if (laneId == forbid1 || laneId == forbid2) continue;
+            allowedEndLanes.push_back(laneId);
+        }
+
+        LaneId goalLane = rngg.uniform(0, allowedEndLanes.size() - 1);
+
+
+        RouteTracker route_tracker(&network_);
+        route_tracker.setGoalAndPlan(freeLanes[startLane],
+                                     Goal::toLane(allowedEndLanes[goalLane]),
+                                     pathfinder_);
+        return {freeLanes[startLane], route_tracker};
+    }
 };
 
-}  // namespace sim
+} // namespace sim

@@ -11,7 +11,11 @@ class WorldContext;
 
 class SimObject {
 public:
-    explicit SimObject(uint64_t id, ObjectType t) : id_(id), type_(t) {}
+    explicit SimObject(ObjectType t) : type_(t) {
+        static uint64_t simObjectId = 0;
+        id_ = simObjectId++;
+    }
+
     virtual ~SimObject() = default;
 
     [[nodiscard]] uint64_t id() const { return id_; }

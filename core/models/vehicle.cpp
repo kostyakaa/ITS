@@ -2,19 +2,26 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <utility>
 
 namespace sim {
 
-Vehicle::Vehicle(uint64_t id, const VehicleParams& vp, const DriverProfile& dp,
+Vehicle::Vehicle(const VehicleParams& vp, const DriverProfile& dp,
                  LaneId lane, double s0, double v0, RouteTracker rt)
-    : SimObject(id, ObjectType::Vehicle),
+    : SimObject(ObjectType::Vehicle),
       params_(vp),
       driver_(dp),
-      rng_(id * 1469598103934665603ULL),
+      rng_(id() * 1469598103934665603ULL),
       lane_(lane),
       s_(s0),
       v_(v0),
       route_(std::move(rt)) {}
+
+Vehicle Vehicle::randomVehicle(int from, RouteTracker rt) {
+    DriverProfile dp{};
+    VehicleParams vp{};
+    return {vp, dp, from, 0, 0, std::move(rt)};
+}
 
 static thread_local const RoadNetwork* g_lastNet = nullptr;
 static thread_local Pose g_lastPose;
@@ -241,8 +248,19 @@ void Vehicle::checkLaneChangeRequirement(WorldContext& world) {
 }
 
 void Vehicle::handlePlanningState(WorldContext& world) {
+    if (planning_start_time_ == 0.0) {
+        planning_start_time_ = world.clock->now;
+    }
+
+    if (world.clock->now - planning_start_time_ > MAX_PLANNING_TIME) {
+        std::cout << "KUHUHKHUHIL\n";
+        startLaneChangeExecution(world);
+        planning_start_time_ = 0.0;
+        return;
+    }
+
     auto visible = getVisibleVehiclesInLane(world, lc_request_->target_lane);
-    std::cout << visible.size() << " " << id() << '\n';
+    // std::cout << visible.size() << " " << id() << '\n';
     if (visible.empty()) {
         startLaneChangeExecution(world);
     } else {
@@ -273,6 +291,7 @@ void Vehicle::executeLaneChange(double dt, WorldContext& world) {
     } else {
         updateLateralPosition();
         if (!isLaneChangeStillSafe(world)) {
+            std::cout << id() << " aboring...\n";
             lc_state_ = LaneChangeState::Aborting;
         }
     }
@@ -386,6 +405,10 @@ void Vehicle::receiveYieldRequest(VehicleId requester_id, bool is_urgent,
     if (!requester)
         return;
 
+    if (requester->s_ < s_ || abs(requester->s_ - s_) < 2) {
+        return;
+    }
+
     received_requests_[requester_id] = world.clock->now;
 
     double yield_prob = driver_.politeness;
@@ -412,6 +435,7 @@ int Vehicle::countYieldingVehicles(WorldContext& world) {
 
 // Начало уступки
 void Vehicle::startYielding(Vehicle* requester) {
+    std::cout << id() << " yielding to " << requester->id() << "\n";
     double distance = calculateDistanceTo(*requester);
     if (distance < params_.minGap * 3.0) {
         a_ = std::min(a_, -params_.comfyDecel);
@@ -422,7 +446,7 @@ void Vehicle::startYielding(Vehicle* requester) {
 void Vehicle::updateYieldingBehavior(WorldContext& world) {
     for (auto it = yielding_to_.begin(); it != yielding_to_.end();) {
         if (auto* other = world.getVehicle(*it)) {
-            if (other->s() > s_ + 10.0) {
+            if (other->s() > s_ + 10.0 || abs(other->s() - s_) < 3) {
                 it = yielding_to_.erase(it);
             } else {
                 maintainYielding(other);
@@ -447,6 +471,7 @@ void Vehicle::updateYieldingBehavior(WorldContext& world) {
 void Vehicle::maintainYielding(Vehicle* other) {
     double distance = calculateDistanceTo(*other);
     if (distance < params_.minGap * 2.0 && v_ > 0.1) {
+        std::cout << id() << " i need to stop\n";
         a_ = std::min(a_, -params_.comfyDecel * 0.7);
     }
 }
@@ -490,10 +515,11 @@ void Vehicle::update(double dt, WorldContext& world) {
 
     const Lane* L = world.net->getLane(lane_);
 
-    if (lc_request_.has_value() && ((lc_state_ != LaneChangeState::Executing &&
-                                     lc_state_ != LaneChangeState::Aborting) ||
-                                    (L
-                                     && L->stopLineS.value_or(0) - s_ < 5))) {
+    if ((lc_request_.has_value() && ((lc_state_ != LaneChangeState::Executing &&
+                                      lc_state_ != LaneChangeState::Aborting) ||
+                                     (L
+                                      && L->stopLineS.value_or(0) - s_ < 5))) ||
+        !yielding_to_.empty()) {
         v_ = 0.0;
         a_ = 0.0;
         mode_ = VehicleMode::Stopped;

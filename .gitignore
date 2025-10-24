@@ -1,0 +1,12 @@
+.idea
+.vscode/
+.idea/
+*.sln
+*.vcxproj*
+*.o
+*.exe
+*.out
+cmake-build-debug
+.clang-format
+test.cpp
+test.exe

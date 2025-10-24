@@ -15,7 +15,8 @@ struct VehicleParams {
     double maxAccel{1.5}; // a_max
     double comfyDecel{1.2}; // b
     double desiredSpeed{14.0}; // Желаемая скорость в m/s
-    double timeHeadway{1.5}; // Желаемый временной интервал до препятсвия спереди
+    double timeHeadway{1.5};
+    // Желаемый временной интервал до препятсвия спереди
     double minGap{2.0}; // минимальный зазор при полной остановке
     double laneChangeTime{2.0};
     // секунды латерального перехода (когда добавите LC)
@@ -54,6 +55,10 @@ struct RNG {
     double uniform(double a, double b) {
         return std::uniform_real_distribution<double>(a, b)(eng);
     }
+
+    int uniform(int a, int b) {
+        return std::uniform_int_distribution<int>(a, b)(eng);
+    }
 };
 
 enum class LaneChangeState { None, Planning, Requesting, Executing, Aborting };
@@ -74,13 +79,18 @@ struct VisibleVehicle {
 
 class Vehicle : public SimObject {
 public:
-    Vehicle(uint64_t id, const VehicleParams& vp, const DriverProfile& dp,
+    Vehicle(const VehicleParams& vp, const DriverProfile& dp,
             LaneId lane, double s0, double v0,
             RouteTracker rt);
 
+    static Vehicle randomVehicle(int from, RouteTracker rt);
+
     LaneId laneId() const { return lane_; }
+
     double s() const { return s_; }
+
     double v() const { return v_; }
+
     VehicleMode mode() const { return mode_; }
 
     Pose pose() const override;
@@ -92,6 +102,7 @@ public:
     void update(double dt, WorldContext& world) override;
 
     RouteTracker& route() { return route_; }
+
     const RouteTracker& route() const { return route_; }
 
     std::optional<LaneId> nextConnector() const {
@@ -118,9 +129,12 @@ private:
     RouteTracker route_;
 
     void perceiveTrafficLight(WorldContext& world, const Lane& L);
+
     void computeLongitudinal(WorldContext& world, const Lane& L,
                              double* outTargetAccel);
+
     void integrateKinematics(double dt);
+
     void advanceAlongRoute(WorldContext& world, double dt);
 
     double idmAccel(double v, double vFront, double gap) const;
@@ -179,6 +193,8 @@ private:
 
     std::unordered_set<VehicleId> yielding_to_;
     std::unordered_map<VehicleId, double> received_requests_;
+
+    double MAX_PLANNING_TIME = 5.0;
 
 };
 
