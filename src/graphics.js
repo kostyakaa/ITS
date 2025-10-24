@@ -15,14 +15,14 @@ export function createRenderer(canvas) {
   } else if ("outputEncoding" in renderer) {
     renderer.outputEncoding = THREE.sRGBEncoding;
   }
-  renderer.toneMapping = THREE.NoToneMapping;
-  renderer.toneMappingExposure = 1.05;  // чуть освещённее
+
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.3;
 
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0xb8e86a, 1); // чуть светлее зелёный фон
+  renderer.setClearColor(0xb7e779, 1);
 
-  // мягкие тени
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -40,7 +40,7 @@ export function createCamera() {
     CAMERA.near || 0.1, CAMERA.far || 2000
   );
   cam.up.set(0, 0, 1);
-  cam.position.set(60, -60, 74);  // чуть выше и ближе
+  cam.position.set(60, -60, 70);
   cam.lookAt(0, 0, 0);
   return cam;
 }
@@ -48,32 +48,34 @@ export function createCamera() {
 export function addLights(scene) {
   if (!scene) throw new Error("addLights(scene): scene is undefined");
 
-  // «дневной» сетап: яркое небо + тёплое солнце + лёгкая заливка
-  scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+  // Естественный дневной свет: небольшая окружающая подсветка, небо и мягкий солнечный свет.
+  // AmbientLight: увеличиваем яркость, чтобы вытянуть детали в тенях.
+  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
 
-  const hemi = new THREE.HemisphereLight(0xe9f6ff, 0xb7e483, 0.95);
+  // HemisphereLight: голубое небо и мягкое зелёное отражение от травы.
+  const hemi = new THREE.HemisphereLight(0xcfefff, 0xa4d474, 0.4);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(0xffe6bf, 0.82); // тёплый оттенок
-  sun.position.set(-90, -120, 200);
+  // Directional light (солнце) с нейтральным оттенком и статичной позицией.
+  const sun = new THREE.DirectionalLight(0xffffff, 0.85);
+  sun.position.set(-80, -60, 1000);
   sun.target.position.set(0, 0, 0);
 
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.near = 10;
-  sun.shadow.camera.far = 400;
-  sun.shadow.camera.left = -70;
-  sun.shadow.camera.right = 70;
-  sun.shadow.camera.top = 70;
-  sun.shadow.camera.bottom = -70;
-  sun.shadow.bias = -0.0003;
-  sun.shadow.normalBias = 0.02;
+  sun.shadow.camera.near = 20;
+  sun.shadow.camera.far = 300;
+  sun.shadow.camera.left = -80;
+  sun.shadow.camera.right = 80;
+  sun.shadow.camera.top = 80;
+  sun.shadow.camera.bottom = -80;
+  sun.shadow.bias = -0.00015;
+  sun.shadow.normalBias = 0.01;
 
   scene.add(sun);
   scene.add(sun.target);
 }
 
-// алиасы под твою сборку
 export const createLights = addLights;
 
 export function attachResize(renderer, camera) {

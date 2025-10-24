@@ -1,215 +1,235 @@
-import * as THREE from 'three';
-import { WORLD, LANES, TEXTURE, COLORS, TRAFFIC } from './config.js';
-import { VoxelCar as Car } from './voxelCar.js';
+import * as THREE from "three";
+import { WORLD, TEXTURE } from "./config.js";
+import { VoxelCar as Car } from "./voxelCar.js";
+import { makeCrossCurbs } from "./curb.js";
+import { makeCrossSidewalks } from "./sidewalk.js";
+import {
+  makeTrafficLight,
+  setTrafficLightState,
+  setDiscState,
+} from "./trafficLight.js";
 
-const SHARP_TEXTURE = false;
-const HALF = WORLD.half;
-const Z = { ground: -0.05 };
-
-function laneOffsets() {
-  const start = LANES.median / 2 + LANES.shoulder + LANES.width / 2;
-  return Array.from({ length: LANES.perSide }, (_, i) => start + i * LANES.width);
+function normAngle(radOrDeg) {
+  if (!Number.isFinite(radOrDeg)) return null;
+  const v = Math.abs(radOrDeg);
+  const asRad = v > (Math.PI * 2 + 1e-3) ? (radOrDeg * Math.PI / 180) : radOrDeg;
+  return asRad;
 }
-const OFF = laneOffsets();
+
+function setupTexture(renderer, tex) {
+  if (!tex) return null;
+  if ("SRGBColorSpace" in THREE) tex.colorSpace = THREE.SRGBColorSpace;
+  else if ("sRGBEncoding" in THREE) tex.encoding = THREE.sRGBEncoding;
+  const aniso = renderer?.capabilities?.getMaxAnisotropy?.() ?? 8;
+  tex.anisotropy = Math.max(8, aniso);
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+class SceneObject {
+  constructor(mesh = new THREE.Group()) {
+    this.node = mesh;
+    this.node.matrixAutoUpdate = true;
+  }
+  addTo(parent) { parent.add(this.node); return this; }
+  setPosition(x, y, z = 0) { this.node.position.set(x, y, z); return this; }
+  setRotationZ(rad) { this.node.rotation.z = rad || 0; return this; }
+}
+
+class CarObject extends SceneObject {
+  constructor() { super(new Car()); }
+}
 
 export class World {
   constructor() {
     this.group = new THREE.Group();
     this.clock = new THREE.Clock();
-    this.vehicles = [];
     this.renderer = null;
+
+    this.cars = new Map();
+    this.lights = new Map();
+
+    this._road = null;
+    this._curbsOuter = null;
+    this._curbsInner = null;
+    this._sidewalks = null;
+
+    this.server = {
+      init: (payload = {}) => this._apiInit(payload),
+      update: (changes = {}) => this._apiUpdate(changes),
+
+      createTrafficLight: (id, opts = {}) => this._createTrafficLight(id, opts),
+      createCar: (id, opts = {}) => this._createCar(id, opts),
+      setTrafficLightColor: (id, color) => this._setTrafficLightColor(id, color),
+      moveCar: (id, pose = {}) => this._moveCar(id, pose),
+    };
+
     this._build();
   }
+
   attachRenderer(renderer) { this.renderer = renderer; }
 
-  _build() {
-    // трава/фон
-    const grassBase = this._plane(WORLD.size * 3, WORLD.size * 3, COLORS.grassMid, Z.ground - 0.01);
-    const grassMid  = this._plane(WORLD.size, WORLD.size, COLORS.grassMid, Z.ground - 0.009);
-    const gLeft  = this._plane(WORLD.size, WORLD.size, COLORS.grassSide, Z.ground - 0.008); gLeft.position.x  = -WORLD.size;
-    const gRight = this._plane(WORLD.size, WORLD.size, COLORS.grassSide, Z.ground - 0.008); gRight.position.x =  WORLD.size;
-    const gTop   = this._plane(WORLD.size, WORLD.size, COLORS.grassSide, Z.ground - 0.008); gTop.position.y   =  WORLD.size;
-    const gBot   = this._plane(WORLD.size, WORLD.size, COLORS.grassSide, Z.ground - 0.008); gBot.position.y   = -WORLD.size;
-    this.group.add(grassBase, grassMid, gLeft, gRight, gTop, gBot);
-
-    // дорога из слоёв PNG (без AO — как ты и хотел)
-    this._buildRoadLayers();
-
-    // транспорт
-    this._spawn();
+  async _build() {
+    await this._buildRoad();
+    this._buildCurbsAndSidewalks();
   }
 
-  _plane(w, h, color, z = 0) {
-    const m = new THREE.Mesh(
-      new THREE.PlaneGeometry(w, h),
-      new THREE.MeshBasicMaterial({ color })
-    );
-    m.position.z = z;
-    return m;
-  }
-
-  // ———————————————————————
-  // ЗАГРУЗКА ТЕКСТУР С МНОГОСТУПЕНЧАТЫМ FALLBACK
-  // ———————————————————————
-  _setupTexture(tex) {
-    if ('SRGBColorSpace' in THREE) tex.colorSpace = THREE.SRGBColorSpace;
-    else if ('sRGBEncoding' in THREE) tex.encoding = THREE.sRGBEncoding;
-
-    if (SHARP_TEXTURE) {
-      tex.generateMipmaps = false;
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.NearestFilter;
-    } else {
-      tex.generateMipmaps = true;
-      tex.minFilter = THREE.LinearMipmapLinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-    }
-    let aniso = 8;
-    if (this.renderer?.capabilities?.getMaxAnisotropy) {
-      aniso = this.renderer.capabilities.getMaxAnisotropy();
-    }
-    tex.anisotropy = Math.max(8, aniso);
-    tex.wrapS = THREE.ClampToEdgeWrapping;
-    tex.wrapT = THREE.ClampToEdgeWrapping;
-    return tex;
-  }
-
-  _loadOne(url) {
-    return new Promise((resolve, reject) => {
-      if (!url) { reject(new Error("no url")); return; }
-      const loader = new THREE.TextureLoader();
-      loader.load(url, (t) => resolve(this._setupTexture(t)), undefined, reject);
+  async _buildRoad() {
+    const load = (url) => new Promise((res) => {
+      if (!url) return res(null);
+      new THREE.TextureLoader().load(url, (t) => res(setupTexture(this.renderer, t)), undefined, () => res(null));
     });
-  }
 
-  async _loadWithFallback(urls) {
-    const tried = [];
-    for (const u of urls) {
-      try {
-        const tex = await this._loadOne(u);
-        console.info("[texture] ok:", u);
-        return tex;
-      } catch (e) {
-        if (u) { tried.push(u); console.warn("[texture] 404:", u); }
+    const [base, markings, crosswalks, edges] = await Promise.all([
+      load(TEXTURE.layers?.base || TEXTURE.url),
+      load(TEXTURE.layers?.markings),
+      load(TEXTURE.layers?.crosswalks),
+      load(TEXTURE.layers?.edges),
+    ]);
+
+    const seed = base || markings || crosswalks || edges;
+    const sizeMeters = TEXTURE.meters ?? WORLD.size;
+
+    let colorMap = null, dispMap = null;
+    if (seed?.image) {
+      const w = seed.image.width, h = seed.image.height;
+
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      const ctx = c.getContext("2d");
+      if (base?.image) ctx.drawImage(base.image, 0, 0, w, h);
+      if (markings?.image) ctx.drawImage(markings.image, 0, 0, w, h);
+      if (crosswalks?.image) { ctx.globalAlpha = 0.9; ctx.drawImage(crosswalks.image, 0, 0, w, h); ctx.globalAlpha = 1; }
+      if (edges?.image) ctx.drawImage(edges.image, 0, 0, w, h);
+      colorMap = setupTexture(this.renderer, new THREE.CanvasTexture(c));
+
+      if (markings?.image || crosswalks?.image) {
+        const d = document.createElement("canvas"); d.width = w; d.height = h;
+        const dctx = d.getContext("2d");
+        dctx.fillStyle = "rgb(0,0,0)"; dctx.fillRect(0, 0, w, h);
+        if (markings?.image) dctx.drawImage(markings.image, 0, 0, w, h);
+        if (crosswalks?.image) dctx.drawImage(crosswalks.image, 0, 0, w, h);
+        dispMap = setupTexture(this.renderer, new THREE.CanvasTexture(d));
       }
     }
-    console.error("[texture] all failed. Tried:", tried.join(", "));
-    return null;
-  }
 
-  // ———————————————————————
-  // ДОРОГА ИЗ СЛОЁВ
-  // ———————————————————————
-  async _buildRoadLayers() {
-    const size = TEXTURE.meters;
-    const orderBase = 10;
-
-    // БАЗА: сразу делаем асфальтово-серую, чтобы НЕ было белого поля
-    const matBase = new THREE.MeshStandardMaterial({
-      color: 0x2f3545,   // тёмно-серый асфальт по умолчанию
-      metalness: 0.0,
-      roughness: 1.0,
-      transparent: false
+    const seg = Math.max(1, Math.floor((TEXTURE.meters ?? 100) * 2));
+    const geom = new THREE.PlaneGeometry(sizeMeters, sizeMeters, seg, seg);
+    const mat = new THREE.MeshStandardMaterial({
+      color: colorMap ? 0xffffff : 0x2f3545,
+      metalness: 0, roughness: 0.9,
+      map: colorMap || null,
+      displacementMap: dispMap || null,
+      displacementScale: dispMap ? ((TEXTURE.meters / (TEXTURE.pixels || 5000)) * 2.0) : 0,
     });
-    const base = new THREE.Mesh(new THREE.PlaneGeometry(size, size), matBase);
-    base.position.z = Z.ground;
-    base.renderOrder = orderBase;
-    base.receiveShadow = true;
-    this.group.add(base);
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.position.z = -0.01; mesh.receiveShadow = true;
+    this.group.add(mesh);
+    this._road = mesh;
+  }
 
-    // пробуем загрузить картинку для базы: layers.base → TEXTURE.url → /kek.png → /frame.png
-    // Подбираем список кандидатов для базовой текстуры дороги: только
-    // определённый слой base и возможный url, без лишних заглушек.
-    const baseCandidates = [
-      TEXTURE.layers?.base,
-      TEXTURE.url,
-    ].filter(Boolean);
+  _buildCurbsAndSidewalks() {
+    const inner = makeCrossCurbs({
+      span: 25, offset: 11, shift: 35.5, z: 0.00,
+      strip: { depth: 0.34, baseH: 0.08, stoneH: 0.32, tileLen: 0.90, gap: 0.02 },
+    });
+    const outer = makeCrossCurbs({
+      span: 25, offset: 7, shift: 32, z: 0.00,
+      strip: { depth: 0.34, baseH: 0.08, stoneH: 0.16, tileLen: 0.90, gap: 0.02 },
+    });
+    const sidewalks = makeCrossSidewalks({
+      angle: 0, span: 25, offsetA: 7, offsetB: 11, shift: 35.5, z: 0.00,
+      curbDepth: 0.34, h: 0.32,
+    });
 
-    const baseTex = await this._loadWithFallback(baseCandidates);
-    if (baseTex) {
-      matBase.map = baseTex;
-      matBase.color.set(0xffffff); // цвет берём из карты
-      matBase.needsUpdate = true;
-    } else {
-      console.warn("[road] using fallback asphalt color only (no base map)");
+    this.group.add(outer); this._curbsOuter = outer;
+    this.group.add(inner); this._curbsInner = inner;
+    this.group.add(sidewalks); this._sidewalks = sidewalks;
+  }
+
+
+  _apiInit(payload = {}) {
+    if (Array.isArray(payload.lights)) {
+      for (const L of payload.lights) {
+        if (!L || L.id == null) continue;
+        this._createTrafficLight(L.id, L);
+        if (L.color) this._setTrafficLightColor(L.id, L.color);
+      }
     }
-
-    // helper для поверхностных слоёв (markings/crosswalks/edges)
-    const addOverlay = async (url, { blending = THREE.NormalBlending, alphaTest = 0.5 } = {}, extraOrder = 1) => {
-      if (!url) return;
-      const tex = await this._loadWithFallback([url]);
-      if (!tex) return; // тихо пропускаем, если файла нет
-
-      const mat = new THREE.MeshBasicMaterial({
-        transparent: true,
-        map: tex,
-        blending,
-        depthWrite: false,   // не пишем глубину → нет «миганий»
-        alphaTest,           // жёсткий край без серых ореолов
-      });
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
-      mesh.position.z = Z.ground + 0.0001 * extraOrder; // микро-смещение
-      mesh.renderOrder = orderBase + extraOrder;
-      this.group.add(mesh);
-    };
-
-    // твоя текущая конфигурация: markings/crosswalks/edges (без AO)
-    await addOverlay(TEXTURE.layers?.markings,   { blending: THREE.NormalBlending, alphaTest: 0.6 }, 2);
-    await addOverlay(TEXTURE.layers?.crosswalks, { blending: THREE.NormalBlending, alphaTest: 0.6 }, 3);
-    await addOverlay(TEXTURE.layers?.edges,      { blending: THREE.NormalBlending, alphaTest: 0.6 }, 4);
+    if (Array.isArray(payload.cars)) {
+      for (const C of payload.cars) {
+        if (!C || C.id == null) continue;
+        this._createCar(C.id, C);
+      }
+    }
   }
 
-  // ———————————————————————
-  // ТРАНСПОРТ
-  // ———————————————————————
-  _spawn() {
-    const min = -HALF + 2.0, max = HALF - 2.0;
-
-    const spawnHoriz = (sign) => {
-      OFF.forEach(off => {
-        for (let k = 0; k < TRAFFIC.perLane; k++) {
-          const obj = new Car();
-          obj.position.set(THREE.MathUtils.randFloat(min, max), sign * off, 0);
-          if (sign < 0) obj.rotation.z = Math.PI;
-          this.group.add(obj);
-          this.vehicles.push({ obj, axis:'x', dir: sign>0?1:-1, speed: this._randSpeed(), min, max });
-        }
-      });
-    };
-    const spawnVert = (sign) => {
-      OFF.forEach(off => {
-        for (let k = 0; k < TRAFFIC.perLane; k++) {
-          const obj = new Car();
-          obj.position.set(sign * off, THREE.MathUtils.randFloat(min, max), 0);
-          obj.rotation.z = sign>0 ? Math.PI/2 : -Math.PI/2;
-          this.group.add(obj);
-          this.vehicles.push({ obj, axis:'y', dir: sign>0?1:-1, speed: this._randSpeed(), min, max });
-        }
-      });
-    };
-
-    spawnHoriz(+1); spawnHoriz(-1);
-    spawnVert(+1);  spawnVert(-1);
+  _apiUpdate(changes = {}) {
+    if (Array.isArray(changes.setLight)) {
+      for (const it of changes.setLight) {
+        if (!it || it.id == null || !it.color) continue;
+        this._setTrafficLightColor(it.id, it.color);
+      }
+    }
+    if (Array.isArray(changes.moveCar)) {
+      for (const it of changes.moveCar) {
+        if (!it || it.id == null) continue;
+        this._moveCar(it.id, it);
+      }
+    }
   }
 
-  _randSpeed() {
-    const s = TRAFFIC.speeds || [6, 8, 10];
-    const base = s[(Math.random() * s.length) | 0];
-    return THREE.MathUtils.randFloat(Math.max(3, base - 1), base + 1);
+  /** Создать/обновить светофор по id. */
+  _createTrafficLight(id, { x = 0, y = 0, z = 0, rot = 0, color = "red" } = {}) {
+    let tl = this.lights.get(id);
+    if (!tl) {
+      tl = makeTrafficLight({ up: "z" });
+      this.group.add(tl);
+      this.lights.set(id, tl);
+    }
+    const yaw = normAngle(rot) ?? 0;
+    tl.position.set(x, y, z);
+    // ВАЖНО: поворот по yaw → ось Z
+    tl.rotation.z = yaw;
+
+    // никакой автосмены — фиксируем цвет
+    tl.userData._discCycle = null;
+    setTrafficLightState(tl, color);
+    setDiscState(tl, color);
+    return tl;
+  }
+
+  /** Поставить фиксированный цвет светофора. */
+  _setTrafficLightColor(id, color /* 'red'|'yellow'|'green' */) {
+    const tl = this.lights.get(id);
+    if (!tl) return false;
+    tl.userData._discCycle = null;
+    setTrafficLightState(tl, color);
+    setDiscState(tl, color);
+    return true;
+  }
+
+  /** Создать/обновить машинку по id. */
+  _createCar(id, { x = 0, y = 0, z = 0, rot = 0 } = {}) {
+    let obj = this.cars.get(id);
+    if (!obj) {
+      obj = new CarObject().addTo(this.group);
+      this.cars.set(id, obj);
+    }
+    const yaw = normAngle(rot) ?? 0;
+    obj.setPosition(x, y, z).setRotationZ(yaw);
+    return obj;
+  }
+
+  _moveCar(id, { x, y, z = 0, rot = null } = {}) {
+    const obj = this.cars.get(id);
+    if (!obj) return false;
+    if (Number.isFinite(x) && Number.isFinite(y)) obj.setPosition(x, y, z);
+    if (Number.isFinite(rot)) obj.setRotationZ(normAngle(rot));
+    return true;
   }
 
   update() {
-    const dt = this.clock.getDelta();
-    for (const v of this.vehicles) {
-      if (v.axis === 'x') {
-        v.obj.position.x += v.dir * v.speed * dt;
-        if (v.obj.position.x >  HALF - 2.0) { v.obj.position.x =  HALF - 2.0; v.dir=-1; v.obj.rotation.z = Math.PI; }
-        if (v.obj.position.x < -HALF + 2.0) { v.obj.position.x = -HALF + 2.0; v.dir= 1; v.obj.rotation.z = 0; }
-      } else {
-        v.obj.position.y += v.dir * v.speed * dt;
-        if (v.obj.position.y >  HALF - 2.0) { v.obj.position.y =  HALF - 2.0; v.dir=-1; v.obj.rotation.z = -Math.PI/2; }
-        if (v.obj.position.y < -HALF + 2.0) { v.obj.position.y = -HALF + 2.0; v.dir= 1; v.obj.rotation.z =  Math.PI/2; }
-      }
-    }
+    this.clock.getDelta();
   }
 }

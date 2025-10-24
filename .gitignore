@@ -1,8 +1,1 @@
 .idea
-.vscode/
-.idea/
-*.sln
-*.vcxproj*
-*.o
-*.exe
-*.out
