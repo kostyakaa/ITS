@@ -19,6 +19,6 @@ add_executable(ITS main.cpp
         core/models/vehicle.cpp
         core/models/vehicle.h
         core/models/world_context.cpp
-        core/simulation/Simulation.cpp
+        core/simulation/simulation.cpp
         core/simulation/simulation.h
 )
