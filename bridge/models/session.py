@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional, List
-import contextlib
-import websockets
 import asyncio
-import json
+import contextlib
+from fastapi import WebSocket, WebSocketDisconnect
 
 from ..config import *
 from ..utils import kill_process_tree
@@ -11,7 +10,7 @@ from ..utils import kill_process_tree
 
 @dataclass
 class Session:
-    ws: websockets.WebSocketServerProtocol
+    ws: WebSocket
     session_id: str
     cmd: List[str] = field(default_factory=lambda: ["./test"])
     proc: Optional[asyncio.subprocess.Process] = None
@@ -61,9 +60,8 @@ class Session:
                 nonlocal buffer, bytes_count
                 if not buffer:
                     return
-
-                payload = json.dumps({"type": "batch", "lines": buffer})
-                await self.ws.send(payload)
+                print(buffer)
+                await self.ws.send_json({"type": "batch", "lines": buffer})
                 buffer = []
                 bytes_count = 0
 
@@ -88,7 +86,7 @@ class Session:
                     if self.proc and self.proc.returncode is not None and self.out_queue.empty():
                         break
 
-                except websockets.ConnectionClosed:
+                except WebSocketDisconnect:
                     break
         finally:
             pass
@@ -98,17 +96,15 @@ class Session:
         assert self.proc and self.proc.stdin
         writer = self.proc.stdin
         try:
-            async for message in self.ws:
-                if isinstance(message, bytes):
-                    data = message
-                else:
-                    data = (message + "\n").encode("utf-8")
+            while True:
+                msg = await self.ws.receive_text()
+                data = (msg + "\n").encode("utf-8")
                 try:
                     writer.write(data)
                     await writer.drain()
                 except (BrokenPipeError, ConnectionResetError):
                     break
-        except websockets.ConnectionClosed:
+        except WebSocketDisconnect:
             pass
         finally:
             with contextlib.suppress(Exception):
