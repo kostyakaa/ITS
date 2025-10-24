@@ -1,10 +1,9 @@
-import asyncio
 import json
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from .models import SessionManager, Session
-import uvicorn
+from config import BIN_PATH
 
 app = FastAPI()
 manager = SessionManager()
@@ -25,15 +24,11 @@ async def websocket_endpoint(ws: WebSocket):
             return
 
         if msg.get("type") != "create":
-            await ws.send_json({"type": "error", "error": "send {'type':'create','cmd':'./test'} first"})
+            await ws.send_json({"type": "error", "error": "send {'type':'create'} first"})
             await ws.close()
             return
 
-        cmd = msg.get("cmd")
-        if isinstance(cmd, str):
-            cmd = [cmd]
-
-        session = await manager.create(ws, cmd=cmd)
+        session = await manager.create(ws, cmd=[str(BIN_PATH)])
         await ws.send_json({"type": "created", "session_id": session.session_id})
 
         await session.batch_sender_task
