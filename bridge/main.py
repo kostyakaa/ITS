@@ -10,13 +10,16 @@ from config import BIN_PATH
 
 app = FastAPI()
 manager = SessionManager()
-static_dir = os.path.join(os.path.dirname(__file__), "static", "dist")
-app.mount("/static", StaticFiles(directory=static_dir), name="static")
+dist_dir = os.path.join(os.path.dirname(__file__), "static", "dist")
+assets_dir = os.path.join(dist_dir, "assets")
+road_dir = os.path.join(dist_dir, "road")
+app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+app.mount("/road", StaticFiles(directory=road_dir), name="road")
 
 
 @app.get("/")
 async def root():
-    return FileResponse(os.path.join(static_dir, "index.html"))
+    return FileResponse(os.path.join(dist_dir, "index.html"))
 
 
 @app.websocket("/ws")
