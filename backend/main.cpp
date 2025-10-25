@@ -31,6 +31,11 @@ void simulationLoop() {
             simulation.addRandomVehicle();
             last_spawn = simulation.time();
         }
+        for (sim::Vehicle veh : simulation.vehicles()) {
+            sim::Pose vP = veh.pose();
+            std::cout << "vh move " << veh.id() << " " << vP.x << " " << vP.y <<
+                " " << vP.theta << std::endl;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
