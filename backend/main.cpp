@@ -25,18 +25,37 @@ void inputHandleLoop() {
 }
 
 void simulationLoop() {
+    const double target_dt = 0.01;
+    const auto target_frame_time = std::chrono::duration<double>(target_dt);
+    auto last_time = std::chrono::steady_clock::now();
+
     while (running) {
-        simulation.update(0.02);
-        if (abs(simulation.time() - last_spawn) > 3) {
-            simulation.addRandomVehicle();
-            last_spawn = simulation.time();
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = now - last_time;
+
+        if (elapsed >= target_frame_time) {
+            double dt = std::chrono::duration<double>(elapsed).count();
+            last_time = now;
+
+            simulation.update(static_cast<float>(dt));
+
+            if (std::abs(simulation.time() - last_spawn) > 3.0f) {
+                simulation.addRandomVehicle();
+                last_spawn = simulation.time();
+            }
+
+            for (const sim::Vehicle& veh : simulation.vehicles()) {
+                sim::Pose vP = veh.pose();
+                std::cout << "vh move " << veh.id() << " "
+                    << vP.x << " " << vP.y << " " << vP.theta << std::endl;
+            }
+        } else {
+            auto sleep_time = duration_cast<std::chrono::milliseconds>(
+                target_frame_time - elapsed);
+            if (sleep_time.count() > 0) {
+                std::this_thread::sleep_for(sleep_time);
+            }
         }
-        for (sim::Vehicle veh : simulation.vehicles()) {
-            sim::Pose vP = veh.pose();
-            std::cout << "vh move " << veh.id() << " " << vP.x << " " << vP.y <<
-                " " << vP.theta << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
 }
 
