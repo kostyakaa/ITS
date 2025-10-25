@@ -42,6 +42,9 @@ class Simulation {
         if (rt.first == -1) {
             return;
         }
+        if (!rt.second.plan().valid()) {
+            return;
+        }
         vehicles_.emplace_back(Vehicle::randomVehicle(rt.first, rt.second));
         std::cout << "vh spawned " << vehicles_.back().id() << std::endl;
         syncVehicles();
