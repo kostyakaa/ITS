@@ -54,17 +54,16 @@ class Session:
         try:
             buffer: List[str] = []
             flush_interval = FLUSH_INTERVAL_MS / 1000.0
-            max_batch_size = 50
+            max_batch_size = 30
 
             last_flush = asyncio.get_event_loop().time()
 
             async def flush():
-                nonlocal buffer, bytes_count, last_flush
+                nonlocal buffer, last_flush
                 if not buffer:
                     return
                 await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
                 buffer = []
-                bytes_count = 0
                 last_flush = asyncio.get_event_loop().time()
 
             while True:
