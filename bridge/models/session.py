@@ -53,16 +53,19 @@ class Session:
         """Отправляет сообщения клиенту батчами в JSON: {"type":"batch","commands":[...]}"""
         try:
             buffer: List[str] = []
-            bytes_count = 0
             flush_interval = FLUSH_INTERVAL_MS / 1000.0
+            max_batch_size = 50
+
+            last_flush = asyncio.get_event_loop().time()
 
             async def flush():
-                nonlocal buffer, bytes_count
+                nonlocal buffer, bytes_count, last_flush
                 if not buffer:
                     return
                 await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
                 buffer = []
                 bytes_count = 0
+                last_flush = asyncio.get_event_loop().time()
 
             while True:
                 try:
@@ -75,11 +78,11 @@ class Session:
                     if get_task in done:
                         line = get_task.result()
                         buffer.append(line)
-                        bytes_count += len(line.encode('utf-8')) + 1
                     else:
                         get_task.cancel()
 
-                    if buffer:
+                    now = asyncio.get_event_loop().time()
+                    if len(buffer) >= max_batch_size or (now - last_flush) >= flush_interval:
                         await flush()
 
                     if self.proc and self.proc.returncode is not None and self.out_queue.empty():
