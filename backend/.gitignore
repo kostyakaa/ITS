@@ -1,6 +1,5 @@
-../.idea
-.vscode/
 .idea/
+.vscode/
 *.sln
 *.vcxproj*
 *.o

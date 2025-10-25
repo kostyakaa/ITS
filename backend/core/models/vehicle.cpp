@@ -253,7 +253,7 @@ void Vehicle::handlePlanningState(WorldContext& world) {
     }
 
     if (world.clock->now - planning_start_time_ > MAX_PLANNING_TIME) {
-        std::cout << "KUHUHKHUHIL\n";
+        // std::cout << "KUHUHKHUHIL\n";
         startLaneChangeExecution(world);
         planning_start_time_ = 0.0;
         return;
@@ -291,7 +291,7 @@ void Vehicle::executeLaneChange(double dt, WorldContext& world) {
     } else {
         updateLateralPosition();
         if (!isLaneChangeStillSafe(world)) {
-            std::cout << id() << " aboring...\n";
+            // std::cout << id() << " aboring...\n";
             lc_state_ = LaneChangeState::Aborting;
         }
     }
@@ -435,7 +435,7 @@ int Vehicle::countYieldingVehicles(WorldContext& world) {
 
 // Начало уступки
 void Vehicle::startYielding(Vehicle* requester) {
-    std::cout << id() << " yielding to " << requester->id() << "\n";
+    // std::cout << id() << " yielding to " << requester->id() << "\n";
     double distance = calculateDistanceTo(*requester);
     if (distance < params_.minGap * 3.0) {
         a_ = std::min(a_, -params_.comfyDecel);
@@ -471,7 +471,7 @@ void Vehicle::updateYieldingBehavior(WorldContext& world) {
 void Vehicle::maintainYielding(Vehicle* other) {
     double distance = calculateDistanceTo(*other);
     if (distance < params_.minGap * 2.0 && v_ > 0.1) {
-        std::cout << id() << " i need to stop\n";
+        // std::cout << id() << " i need to stop\n";
         a_ = std::min(a_, -params_.comfyDecel * 0.7);
     }
 }

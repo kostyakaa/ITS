@@ -43,6 +43,7 @@ class Simulation {
             return;
         }
         vehicles_.emplace_back(Vehicle::randomVehicle(rt.first, rt.second));
+        std::cout << "vh spawned " << vehicles_.back().id() << std::endl;
         syncVehicles();
     }
 
@@ -114,9 +115,7 @@ class Simulation {
         if (it != vehicles_.end()) {
             vehicles_.erase(it, vehicles_.end());
             syncVehicles();
-            std::cout << "Vehicle " << id << " removed.\n";
-        } else {
-            std::cout << "Vehicle " << id << " not found.\n";
+            std::cout << "vh deleted" << id << std::endl;
         }
     }
 
