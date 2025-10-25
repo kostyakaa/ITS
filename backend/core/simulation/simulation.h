@@ -115,7 +115,7 @@ class Simulation {
         if (it != vehicles_.end()) {
             vehicles_.erase(it, vehicles_.end());
             syncVehicles();
-            std::cout << "vh deleted" << id << std::endl;
+            std::cout << "vh deleted " << id << std::endl;
         }
     }
 
