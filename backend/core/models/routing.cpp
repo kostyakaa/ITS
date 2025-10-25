@@ -101,19 +101,19 @@ RoutePlan Pathfinder::plan(LaneId startLane, const Goal& goal) const {
                 pq.push({L->left, gNew, f, cur.lane});
             }
         }
-        if (L->right != -1) {
-            const Lane* LN = net_->getLane(L->right);
-            if (!LN)
-                continue;
-            double w = edgeCost(cur.lane, L->right);
-            double gNew = cur.g + w;
-            if (!bestG.count(L->right) || gNew < bestG[L->right]) {
-                bestG[L->right] = gNew;
-                parent[L->right] = cur.lane;
-                double f = gNew + heuristic(L->right, goal);
-                pq.push({L->right, gNew, f, cur.lane});
-            }
-        }
+        // if (L->right != -1) {
+        //     const Lane* LN = net_->getLane(L->right);
+        //     if (!LN)
+        //         continue;
+        //     double w = edgeCost(cur.lane, L->right);
+        //     double gNew = cur.g + w;
+        //     if (!bestG.count(L->right) || gNew < bestG[L->right]) {
+        //         bestG[L->right] = gNew;
+        //         parent[L->right] = cur.lane;
+        //         double f = gNew + heuristic(L->right, goal);
+        //         pq.push({L->right, gNew, f, cur.lane});
+        //     }
+        // }
     }
 
     return out;
