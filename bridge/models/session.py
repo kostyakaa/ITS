@@ -60,7 +60,7 @@ class Session:
                 nonlocal buffer, bytes_count
                 if not buffer:
                     return
-                await self.ws.send_json({"type": "batch", "commands": map(convert_msg_to_dict, buffer)})
+                await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
                 buffer = []
                 bytes_count = 0
 
