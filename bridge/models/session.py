@@ -5,7 +5,7 @@ import contextlib
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ..config import *
-from ..utils import kill_process_tree
+from ..utils import kill_process_tree, convert_msg_to_dict
 
 
 @dataclass
@@ -50,7 +50,7 @@ class Session:
             await self.out_queue.put(f"[SIM] <reader error: {e}>")
 
     async def _batch_sender(self):
-        """Отправляет сообщения клиенту батчами в JSON: {"type":"batch","lines":[...]}"""
+        """Отправляет сообщения клиенту батчами в JSON: {"type":"batch","commands":[...]}"""
         try:
             buffer: List[str] = []
             bytes_count = 0
@@ -60,8 +60,7 @@ class Session:
                 nonlocal buffer, bytes_count
                 if not buffer:
                     return
-                print(buffer)
-                await self.ws.send_json({"type": "batch", "lines": buffer})
+                await self.ws.send_json({"type": "batch", "commands": map(convert_msg_to_dict, buffer)})
                 buffer = []
                 bytes_count = 0
 
