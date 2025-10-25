@@ -155,7 +155,7 @@ class Simulation {
     std::vector<RouteTracker> routes_;
     WorldContext world_;
     Pathfinder pathfinder_;
-    RNG rngg{32424};
+    RNG rngg{std::random_device{}()};
 
     void syncVehicles() {
         vehicle_ptrs_.clear();
