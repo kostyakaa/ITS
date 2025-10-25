@@ -21,7 +21,7 @@ struct VehicleParams {
     double laneChangeTime{2.0};
     // секунды латерального перехода (когда добавите LC)
     double viewDistance{80.0};
-    double fovRad{0.3}; // ~149°
+    double fovRad{0.4}; // ~149°
 };
 
 struct DriverProfile {
