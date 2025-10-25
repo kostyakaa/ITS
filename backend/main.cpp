@@ -39,7 +39,7 @@ void simulationLoop() {
 
             simulation.update(static_cast<float>(dt));
 
-            if (std::abs(simulation.time() - last_spawn) > 3.0f) {
+            if (std::abs(simulation.time() - last_spawn) > 2.0f) {
                 simulation.addRandomVehicle();
                 last_spawn = simulation.time();
             }
