@@ -5,6 +5,7 @@
 #include "../models/world_context.h"
 #include "../models/vehicle.h"
 #include <iostream>
+#include <chrono>
 
 namespace sim {
 
@@ -158,7 +159,7 @@ class Simulation {
     std::vector<RouteTracker> routes_;
     WorldContext world_;
     Pathfinder pathfinder_;
-    RNG rngg{std::random_device{}()};
+    RNG rngg{static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count())};
 
     void syncVehicles() {
         vehicle_ptrs_.clear();
