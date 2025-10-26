@@ -94,14 +94,15 @@ class Simulation {
     }
 
     void initSignals() {
-        SignalPhase red{20, CarSignal::Red};
+        SignalPhase red{30, CarSignal::Red};
         SignalPhase green{20, CarSignal::Green};
+        SignalPhase yellow{3, CarSignal::Yellow};
         TrafficLightGroup group1;
         TrafficLightGroup group2;
         group1.id = 1;
         group2.id = 2;
-        group1.setProgram({red, green});
-        group2.setProgram({green, red});
+        group1.setProgram({red, yellow, green, yellow});
+        group2.setProgram({green, yellow, red, yellow});
         network_.getLane(2)->signalGroupId = group1.id;
         network_.getLane(4)->signalGroupId = group1.id;
         network_.getLane(12)->signalGroupId = group1.id;
