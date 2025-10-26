@@ -87,8 +87,8 @@ void Vehicle::computeLongitudinal(WorldContext& world, const Lane& L,
     if (L.isConnector || abs(s_ - L.stopLineS.value()) < 5) {
         std::vector<VisibleObject> objects = getVisibleObjects(world);
         if (!objects.empty()) {
-            vFront = std::min(vFront, objects[0].speed / 5);
-            gapToLeader = std::min(gapToLeader, objects[0].distance - 5);
+            vFront = std::min(vFront, objects[0].speed / 10);
+            gapToLeader = std::min(gapToLeader, objects[0].distance - 4);
         }
     }
 
