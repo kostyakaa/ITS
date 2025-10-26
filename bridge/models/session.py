@@ -43,7 +43,8 @@ class Session:
                     break
                 text = line.decode('utf-8', errors='replace').rstrip("\r\n")
                 try:
-                    self.out_queue.put_nowait(text)
+                    for part in text.split(";"):
+                        self.out_queue.put_nowait(part)
                 except asyncio.QueueFull:
                     pass
         except Exception as e:
@@ -54,7 +55,7 @@ class Session:
         try:
             buffer: List[str] = []
             flush_interval = FLUSH_INTERVAL_MS / 1000.0
-            max_batch_size = 30
+            max_batch_size = 20
 
             last_flush = asyncio.get_event_loop().time()
 
