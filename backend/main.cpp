@@ -47,7 +47,10 @@ void simulationLoop() {
             for (const sim::Vehicle& veh : simulation.vehicles()) {
                 sim::Pose vP = veh.pose();
                 std::cout << "vh move " << veh.id() << " "
-                    << vP.x << " " << vP.y << " " << vP.theta << std::endl;
+                    << vP.x << " " << vP.y << " " << vP.theta << ";";
+            }
+            if (!simulation.vehicles().empty()) {
+                std::cout << std::endl;
             }
         } else {
             auto sleep_time = duration_cast<std::chrono::milliseconds>(
