@@ -88,7 +88,7 @@ void Vehicle::computeLongitudinal(WorldContext& world, const Lane& L,
         std::vector<VisibleObject> objects = getVisibleObjects(world);
         if (!objects.empty()) {
             vFront = std::min(vFront, objects[0].speed / 10);
-            gapToLeader = std::min(gapToLeader, objects[0].distance - 3);
+            gapToLeader = std::min(gapToLeader, objects[0].distance - 2);
         }
     }
 
