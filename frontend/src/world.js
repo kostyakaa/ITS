@@ -1,16 +1,31 @@
-// world.js
 import * as THREE from "three";
-import { WORLD, TEXTURE } from "./config.js";
-import { VoxelCar as Car } from "./voxelCar.js";
-import { makeCrossCurbs } from "./curb.js";
-import { makeCrossSidewalks } from "./sidewalk.js";
+import {WORLD, TEXTURE} from "./config.js";
+import {VoxelCar as Car} from "./voxelCar.js";
+import {makeCrossCurbs} from "./curb.js";
+import {makeCrossSidewalks} from "./sidewalk.js";
 import {
-  makeTrafficLight,
-  setTrafficLightState,
-  setDiscState,
+    makeTrafficLight,
+    setTrafficLightState,
+    setDiscState,
 } from "./trafficLight.js";
 
-// ---------- helpers ----------
+const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    const loaderText = document.querySelector("#loader p");
+    if (loaderText) loaderText.textContent = `Загрузка ресурсов... (${itemsLoaded} из ${itemsTotal})`;
+};
+
+loadingManager.onLoad = function () {
+    const loader = document.getElementById("loader");
+    const canvas = document.querySelector("canvas.game");
+    if (loader) {
+        loader.remove()
+    }
+    if (canvas) canvas.style.display = "block";
+};
+
+
 function normAngle(radOrDeg) {
   if (!Number.isFinite(radOrDeg)) return 0;
   const v = Math.abs(radOrDeg);
@@ -221,8 +236,6 @@ export function makeSymmetricForest(list, { s = 0.45, mirror = true } = {}) {
   return group;
 }
 
-
-// =============== WORLD =================
 export class World {
   constructor() {
     this.group = new THREE.Group();
@@ -404,17 +417,17 @@ export class World {
     return true;
   }
 
-  /** Создать/обновить машинку по id. */
-  _createCar(id, { x = 0, y = 0, z = 0, rot = 0 } = {}) {
-    let obj = this.cars.get(id);
-    if (!obj) {
-      obj = new CarObject().addTo(this.group);
-      this.cars.set(id, obj);
+    /** Создать/обновить машинку по id. */
+    _createCar(id, {x = 5000, y = 0, z = 0, rot = 0} = {}) {
+        let obj = this.cars.get(id);
+        if (!obj) {
+            obj = new CarObject().addTo(this.group);
+            this.cars.set(id, obj);
+        }
+        const yaw = normAngle(rot) ?? 0;
+        obj.setPosition(x, y, z).setRotationZ(yaw);
+        return obj;
     }
-    const yaw = normAngle(rot);
-    obj.setPosition(x, y, z).setRotationZ(yaw);
-    return obj;
-  }
 
   _moveCar(id, { x, y, z = 0, rot = null } = {}) {
     const obj = this.cars.get(id);
