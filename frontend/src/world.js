@@ -9,6 +9,23 @@ import {
     setDiscState,
 } from "./trafficLight.js";
 
+const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    const loaderText = document.querySelector("#loader p");
+    if (loaderText) loaderText.textContent = `Загрузка ресурсов... (${itemsLoaded} из ${itemsTotal})`;
+};
+
+loadingManager.onLoad = function () {
+    const loader = document.getElementById("loader");
+    const canvas = document.querySelector("canvas.game");
+    if (loader) {
+        loader.remove()
+    }
+    if (canvas) canvas.style.display = "block";
+};
+
+
 function normAngle(radOrDeg) {
     if (!Number.isFinite(radOrDeg)) return null;
     const v = Math.abs(radOrDeg);
@@ -95,7 +112,11 @@ export class World {
     async _buildRoad() {
         const load = (url) => new Promise((res) => {
             if (!url) return res(null);
-            new THREE.TextureLoader().load(url, (t) => res(setupTexture(this.renderer, t)), undefined, () => res(null));
+            new THREE.TextureLoader(loadingManager).load(url,
+                (t) => res(setupTexture(this.renderer, t)),
+                undefined,
+                () => res(null)
+            );
         });
 
         const [base, markings, crosswalks, edges] = await Promise.all([
@@ -240,7 +261,7 @@ export class World {
     }
 
     /** Создать/обновить машинку по id. */
-    _createCar(id, {x = 0, y = 0, z = 0, rot = 0} = {}) {
+    _createCar(id, {x = 5000, y = 0, z = 0, rot = 0} = {}) {
         let obj = this.cars.get(id);
         if (!obj) {
             obj = new CarObject().addTo(this.group);
