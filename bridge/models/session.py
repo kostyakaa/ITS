@@ -73,7 +73,7 @@ class Session:
 
                 try:
                     await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
-                except WebSocketDisconnect:
+                except (WebSocketDisconnect, RuntimeError):
                     return
                 buffer = []
                 last_flush = asyncio.get_event_loop().time()
