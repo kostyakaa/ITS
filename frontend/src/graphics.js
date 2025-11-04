@@ -48,35 +48,40 @@ export function createCamera() {
 export function addLights(scene) {
   if (!scene) throw new Error("addLights(scene): scene is undefined");
 
-  // Естественный дневной свет: небольшая окружающая подсветка, небо и мягкий солнечный свет.
-  // AmbientLight: увеличиваем яркость, чтобы вытянуть детали в тенях.
-  scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const amb = new THREE.AmbientLight(0xffffff, 0.4);
+  scene.add(amb);
 
-  // HemisphereLight: голубое небо и мягкое зелёное отражение от травы.
-  const hemi = new THREE.HemisphereLight(0xcfefff, 0xa4d474, 0.4);
-  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xffffff, 0.9);
 
-  // Directional light (солнце) с нейтральным оттенком и статичной позицией.
-  const sun = new THREE.DirectionalLight(0xffffff, 0.85);
-  sun.position.set(-80, -60, 1000);
+  sun.position.set(20, 10, 20);
+
   sun.target.position.set(0, 0, 0);
 
   sun.castShadow = true;
+
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.near = 20;
-  sun.shadow.camera.far = 300;
-  sun.shadow.camera.left = -80;
-  sun.shadow.camera.right = 80;
-  sun.shadow.camera.top = 80;
-  sun.shadow.camera.bottom = -80;
-  sun.shadow.bias = -0.00015;
-  sun.shadow.normalBias = 0.01;
+
+
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 200;
+
+  sun.shadow.camera.left   = -120;
+  sun.shadow.camera.right  =  120;
+  sun.shadow.camera.top    =  120;
+  sun.shadow.camera.bottom = -120;
+
+  sun.shadow.camera.updateProjectionMatrix();
+
+  sun.shadow.bias = -0.0002;
+  sun.shadow.normalBias = 0.02;
 
   scene.add(sun);
   scene.add(sun.target);
+
 }
 
 export const createLights = addLights;
+
 
 export function attachResize(renderer, camera) {
   window.addEventListener("resize", () => {
