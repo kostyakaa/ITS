@@ -3,6 +3,7 @@ import {SimSocket} from "./socket.js";
 import {
     createRenderer,
     createCamera,
+    createLights,
     attachResize,
 } from "./graphics.js";
 import {World} from "./world.js";
@@ -11,16 +12,12 @@ const canvas = document.querySelector("canvas.game") || undefined;
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
+// Инициализируем освещение для сцены. Функция createLights определена в graphics.js
+// и настраивает ambient, hemisphere и directional light с правильной теневой камерой.
+createLights(scene);
 const camera = createCamera();
 
-{
-    const amb = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(amb);
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-    dir.position.set(20, 10, 20);
-    dir.castShadow = true;
-    scene.add(dir);
-}
+// свет теперь добавляется через createLights(scene) и не создаётся вручную
 
 const world = new World();
 world.attachRenderer?.(renderer);

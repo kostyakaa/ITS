@@ -2,12 +2,14 @@ export const WORLD = { size: 100, half: 50 };
 
 export const TEXTURE = {
   meters: 100,
-  pixels: 5000,
+  pixels: 10000,
+  url: "./road/full.svg",
   layers: {
     base: "./road/base.png",
     markings: "./road/markings.png",
     crosswalks: "./road/crosswalks.png",
     edges: "./road/ao.png",
+
   },
 };
 

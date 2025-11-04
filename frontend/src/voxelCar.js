@@ -25,21 +25,34 @@ function box(w, d, h, mat, x, y, z) {
   return m;
 }
 
+function darker(hex, k = 0.7) {
+  const c = new THREE.Color(hex);
+  c.multiplyScalar(k);
+  return c.getHex();
+}
+function lighten(hex, t = 0.18) {
+  const c = new THREE.Color(hex);
+  c.lerp(new THREE.Color(0xffffff), t);
+  return c.getHex();
+}
+
 
 export class VoxelCar extends THREE.Group {
   constructor(colorHex = 0x25c7da) {
     super();
+    const CAR_COLORS = [0xe74c3c, 0x3498db, 0xf1c40f, 0x2ecc71, 0x9b59b6, 0xff8a00];
+    colorHex = CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)];
 
     const C = {
-      body: colorHex,                // бирюзовый кузов
-      bodyDark: 0x19aabe,            // низ кузова
-      roof: 0xffffff,                // крыша
-      glass: 0x111111,               // стёкла
-      bumper: 0xcfd3dd,              // бамперы
-      fender: 0x8c88a4,              // «юбка»
-      tire: 0x0d0d0d,                // шина
-      hub: 0xffffff,                 // колпак
-      accent: 0x1bb6c8,              // нос/хвост
+      body: colorHex,
+      bodyDark: colorHex,
+      roof: 0xffffff,
+      glass: 0x111111,
+      bumper: 0xcfd3dd,
+      fender: 0x8c88a4,
+      tire: 0x0d0d0d,
+      hub: 0xffffff,
+      accent: colorHex,
     };
 
     const M = {
