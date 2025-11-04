@@ -10,11 +10,29 @@ import {
   setDiscState,
 } from "./trafficLight.js";
 
-// ---------- helpers ----------
+
+const loadingManager = new THREE.LoadingManager();
+
+loadingManager.onProgress = function (url, itemsLoaded, itemsTotal) {
+    const loaderText = document.querySelector("#loader p");
+    if (loaderText) loaderText.textContent = `Загрузка ресурсов... (${itemsLoaded} из ${itemsTotal})`;
+};
+
+loadingManager.onLoad = function () {
+    const loader = document.getElementById("loader");
+    const canvas = document.querySelector("canvas.game");
+    if (loader) {
+        loader.remove()
+    }
+    if (canvas) canvas.style.display = "block";
+};
+
+
 function normAngle(radOrDeg) {
-  if (!Number.isFinite(radOrDeg)) return 0;
-  const v = Math.abs(radOrDeg);
-  return v > (Math.PI * 2 + 1e-3) ? (radOrDeg * Math.PI) / 180 : radOrDeg;
+    if (!Number.isFinite(radOrDeg)) return null;
+    const v = Math.abs(radOrDeg);
+    const asRad = v > (Math.PI * 2 + 1e-3) ? (radOrDeg * Math.PI / 180) : radOrDeg;
+    return asRad;
 }
 
 function setupTexture(renderer, tex) {
@@ -34,219 +52,58 @@ function setupTexture(renderer, tex) {
   return tex;
 }
 
-function loadImage(url) {
-  return new Promise((resolve) => {
-    if (!url) return resolve(null);
-    const img = new Image();
-    img.crossOrigin = "anonymous"; // безопасно для same-origin; не мешает и при локальной подаче
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
-}
-
-function makeCanvas(w, h) {
-  const C = document.createElement("canvas");
-  C.width = w;
-  C.height = h;
-  return C;
-}
-
-async function textureFromSVGorImage(url, targetSizePx, renderer) {
-  // Универсальная отрисовка в Canvas → CanvasTexture (надёжнее, чем прямой TextureLoader для SVG)
-  const img = await loadImage(url);
-  if (!img) return null;
-
-  const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
-  const C = makeCanvas(size, size);
-  const ctx = C.getContext("2d");
-
-  // заполняем фон (на случай прозрачного SVG)
-  ctx.fillStyle = "#2f3545";
-  ctx.fillRect(0, 0, size, size);
-
-  // "cover" — равномерно растянуть, сохраняя пропорции, чтобы закрыть квадрат
-  const iw = img.naturalWidth || img.width;
-  const ih = img.naturalHeight || img.height;
-  if (iw && ih) {
-    const s = Math.max(size / iw, size / ih);
-    const dw = iw * s;
-    const dh = ih * s;
-    const dx = (size - dw) * 0.5;
-    const dy = (size - dh) * 0.5;
-    ctx.drawImage(img, dx, dy, dw, dh);
-  } else {
-    // fallback — просто нарисовать как есть
-    ctx.drawImage(img, 0, 0, size, size);
-  }
-
-  const tex = new THREE.CanvasTexture(C);
-  return setupTexture(renderer, tex);
-}
-
-async function textureFromLayers(layers, targetSizePx, renderer) {
-  const order = ["base", "edges", "markings", "crosswalks"]; // порядок композиции
-  const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
-  const C = makeCanvas(size, size);
-  const ctx = C.getContext("2d");
-  ctx.imageSmoothingEnabled = true;
-
-  // фон
-  ctx.fillStyle = "#2f3545";
-  ctx.fillRect(0, 0, size, size);
-
-  for (const key of order) {
-    const url = layers?.[key];
-    if (!url) continue;
-    const img = await loadImage(url);
-    if (!img) continue;
-    ctx.drawImage(img, 0, 0, size, size);
-  }
-
-  const tex = new THREE.CanvasTexture(C);
-  return setupTexture(renderer, tex);
-}
-
 class SceneObject {
-  constructor(mesh = new THREE.Group()) {
-    this.node = mesh;
-    this.node.matrixAutoUpdate = true;
-  }
-  addTo(parent) { parent.add(this.node); return this; }
-  setPosition(x, y, z = 0) { this.node.position.set(x, y, z); return this; }
-  setRotationZ(rad) { this.node.rotation.z = rad || 0; return this; }
+    constructor(mesh = new THREE.Group()) {
+        this.node = mesh;
+        this.node.matrixAutoUpdate = true;
+    }
+
+    addTo(parent) {
+        parent.add(this.node);
+        return this;
+    }
+
+    setPosition(x, y, z = 0) {
+        this.node.position.set(x, y, z);
+        return this;
+    }
+
+    setRotationZ(rad) {
+        this.node.rotation.z = rad || 0;
+        return this;
+    }
 }
 
 class CarObject extends SceneObject {
-  constructor() { super(new Car()); }
-}
-
-export function makeTree({
-  height = 30,           // базовая высота кроны (в твоих единицах)
-  s = 0.06,              // 👉 scaleFactor: 0.45 по умолчанию — больше НЕ огромные
-  trunkColor = 0x4d2926,
-  crownColor = 0x7aa21d,
-  steps = 4,             // сколько "ступеней" у кроны (все — кубы)
-  shrink = 0,         // насколько сжимать каждую следующую ступень по X/Y
-} = {}) {
-  const tree = new THREE.Group();
-
-  // ствол (квадратный), высоты/ширины отмасштабированы
-  const trunkW = 15 * s, trunkD = 15 * s, trunkH = 20 * s;
-  const trunk = new THREE.Mesh(
-    new THREE.BoxGeometry(trunkW, trunkD, trunkH),
-    new THREE.MeshLambertMaterial({ color: trunkColor, flatShading: true })
-  );
-  trunk.position.z = trunkH / 2;             // стоит вертикально (никакого инверта)
-  trunk.castShadow = trunk.receiveShadow = true;
-  tree.add(trunk);
-
-  // крона (ступеньки из квадратов)
-  const crownH = height * s;
-  const crownBaseW = height * s, crownBaseD = height * s;
-  const gap = 2 * s; // небольшой зазор, чтобы точно не было наложений
-  const crownGroup = new THREE.Group();
-
-  let zCursor = 0;
-  for (let i = 0; i < steps; i++) {
-    const hPart = crownH * (i === steps - 1 ? 0.34 : 0.33); // суммарно ≈ 1
-    const w = crownBaseW * (1 - shrink * i);
-    const d = crownBaseD * (1 - shrink * i);
-
-    const seg = new THREE.Mesh(
-      new THREE.BoxGeometry(w, d, hPart),
-      new THREE.MeshLambertMaterial({ color: crownColor, flatShading: true })
-    );
-    seg.position.z = zCursor + hPart / 2;
-    seg.castShadow = seg.receiveShadow = true;
-
-    crownGroup.add(seg);
-    zCursor += hPart;
-  }
-
-  crownGroup.position.z = trunkH + gap;
-  tree.add(crownGroup);
-
-  return tree;
-}
-
-
-// 👉 высадка деревьев «за тротуаром» рядами вокруг перекрёстка
-function buildTrees() {
-  const g = new THREE.Group();
-
-  const rowsAt = 12.8;     // чуть дальше внешней кромки тротуара (~11)
-  const step   = 5.5;
-  const min = -WORLD.half + 5;
-  const max =  WORLD.half - 5;
-
-  // горизонтальные ряды (вдоль X) по y = ±rowsAt
-  for (let x = min; x <= max; x += step) {
-    const t1 = makeTree();
-    t1.position.set(x, +rowsAt, 0);
-    g.add(t1);
-    const t2 = makeTree();
-    t2.position.set(x, -rowsAt, 0);
-    g.add(t2);
-  }
-  // вертикальные ряды (вдоль Y) по x = ±rowsAt
-  for (let y = min; y <= max; y += step) {
-    const t3 = makeTree(); t3.position.set(+rowsAt, y, 0); g.add(t3);
-    const t4 = makeTree(); t4.position.set(-rowsAt, y, 0); g.add(t4);
-  }
-  return g;
-}
-
-
-export function makeSymmetricForest(list, { s = 0.45, mirror = true } = {}) {
-  const group = new THREE.Group();
-
-  const place = (x, y, opts) => {
-    const t = makeTree({ s, ...opts });
-    t.position.set(x, y, 0);
-    group.add(t);
-  };
-
-  for (const item of list) {
-    const { x, y, ...opts } = item;
-    if (mirror) {
-      place(+x, +y, opts);
-      place(-x, +y, opts);
-      place(+x, -y, opts);
-      place(-x, -y, opts);
-    } else {
-      place(+x, +y, opts);
+    constructor() {
+        super(new Car());
     }
-  }
-  return group;
 }
 
-
-// =============== WORLD =================
 export class World {
-  constructor() {
-    this.group = new THREE.Group();
-    this.clock = new THREE.Clock();
-    this.renderer = null;
+    constructor() {
+        this.group = new THREE.Group();
+        this.clock = new THREE.Clock();
+        this.renderer = null;
 
-    this.cars = new Map();
-    this.lights = new Map();
+        this.cars = new Map();
+        this.lights = new Map();
 
-    this._road = null;
-    this._curbsOuter = null;
-    this._curbsInner = null;
-    this._sidewalks = null;
+        this._road = null;
+        this._curbsOuter = null;
+        this._curbsInner = null;
+        this._sidewalks = null;
 
-    this.server = {
-      init: (payload = {}) => this._apiInit(payload),
-      update: (changes = {}) => this._apiUpdate(changes),
+        this.server = {
+            init: (payload = {}) => this._apiInit(payload),
+            update: (changes = {}) => this._apiUpdate(changes),
 
-      createTrafficLight: (id, opts = {}) => this._createTrafficLight(id, opts),
-      createCar: (id, opts = {}) => this._createCar(id, opts),
-      setTrafficLightColor: (id, color) => this._setTrafficLightColor(id, color),
-      moveCar: (id, pose = {}) => this._moveCar(id, pose),
-      deleteCar: (id) => this._deleteCar(id),
-    };
+            createTrafficLight: (id, opts = {}) => this._createTrafficLight(id, opts),
+            createCar: (id, opts = {}) => this._createCar(id, opts),
+            setTrafficLightColor: (id, color) => this._setTrafficLightColor(id, color),
+            moveCar: (id, pose = {}) => this._moveCar(id, pose),
+            deleteCar: (id) => this._deleteCar(id),
+        };
 
     // строим синхронно то, что можем сразу, а дорогу грузим асинхронно
     this._buildStatic();
@@ -255,12 +112,14 @@ export class World {
     });
   }
 
-  attachRenderer(renderer) {
-    this.renderer = renderer;
-    // если текстура дороги уже есть — подтянем анизотропию/цветовое пространство
-    const tex = this._road?.material?.map;
-    if (tex) setupTexture(this.renderer, tex);
-  }
+    attachRenderer(renderer) {
+        this.renderer = renderer;
+    }
+
+    async _build() {
+        await this._buildRoad();
+        this._buildCurbsAndSidewalks();
+    }
 
   // -------- static parts (бордюры/тротуары) --------
   _buildStatic() {
@@ -276,36 +135,6 @@ export class World {
       angle: 0, span: 25, offsetA: 7, offsetB: 11, shift: 35.5, z: 0.0,
       curbDepth: 0.34, h: 0.32,
     });
-
-    this.group.add(outer);
-    this._curbsOuter = outer;
-    this.group.add(inner);
-    this._curbsInner = inner;
-    this.group.add(sidewalks);
-    this._sidewalks = sidewalks;
-
-    const trees = buildTrees();
-
-    const forest = makeSymmetricForest(
-    [
-        { x: 15, y: 16, h: 26 },
-        { x: 20, y: 25, h: 22 },
-        { x: 24, y: 21, h: 22 },
-        { x: 17, y: 21, h: 22 },
-        { x: 26, y: 42, h: 26 },
-        { x: 23, y: 17, h: 22 },
-        { x: 20, y: 19, h: 22 },
-        { x: 17, y: 21, h: 22 },
-    ],
-        { s: 0.07 }
-    );
-
-    this.group.add(forest);
-    this._trees = trees;
-
-
-
-  }
 
   // -------- dynamic road (SVG / IMG / layers) --------
   async _buildRoad() {
@@ -360,49 +189,50 @@ export class World {
     }
   }
 
-  _apiUpdate(changes = {}) {
-    if (Array.isArray(changes.setLight)) {
-      for (const it of changes.setLight) {
-        if (!it || it.id == null || !it.color) continue;
-        this._setTrafficLightColor(it.id, it.color);
-      }
+    _apiUpdate(changes = {}) {
+        if (Array.isArray(changes.setLight)) {
+            for (const it of changes.setLight) {
+                if (!it || it.id == null || !it.color) continue;
+                this._setTrafficLightColor(it.id, it.color);
+            }
+        }
+        if (Array.isArray(changes.moveCar)) {
+            for (const it of changes.moveCar) {
+                if (!it || it.id == null) continue;
+                this._moveCar(it.id, it);
+            }
+        }
     }
-    if (Array.isArray(changes.moveCar)) {
-      for (const it of changes.moveCar) {
-        if (!it || it.id == null) continue;
-        this._moveCar(it.id, it);
-      }
+
+    /** Создать/обновить светофор по id. */
+    _createTrafficLight(id, {x = 0, y = 0, z = 0, rot = 0, color = "red"} = {}) {
+        let tl = this.lights.get(id);
+        if (!tl) {
+            tl = makeTrafficLight({up: "z"});
+            this.group.add(tl);
+            this.lights.set(id, tl);
+        }
+        const yaw = normAngle(rot) ?? 0;
+        tl.position.set(x, y, z);
+        // ВАЖНО: поворот по yaw → ось Z
+        tl.rotation.z = yaw;
+
+        // никакой автосмены — фиксируем цвет
+        tl.userData._discCycle = null;
+        setTrafficLightState(tl, color);
+        setDiscState(tl, color);
+        return tl;
     }
-  }
 
-  /** Создать/обновить светофор по id. */
-  _createTrafficLight(id, { x = 0, y = 0, z = 0, rot = 0, color = "red" } = {}) {
-    let tl = this.lights.get(id);
-    if (!tl) {
-      tl = makeTrafficLight({ up: "z" });
-      this.group.add(tl);
-      this.lights.set(id, tl);
+    /** Поставить фиксированный цвет светофора. */
+    _setTrafficLightColor(id, color /* 'red'|'yellow'|'green' */) {
+        const tl = this.lights.get(id);
+        if (!tl) return false;
+        tl.userData._discCycle = null;
+        setTrafficLightState(tl, color);
+        setDiscState(tl, color);
+        return true;
     }
-    const yaw = normAngle(rot);
-    tl.position.set(x, y, z);
-    tl.rotation.z = yaw;
-
-    // фиксируем цвет (без автосмены)
-    tl.userData._discCycle = null;
-    setTrafficLightState(tl, color);
-    setDiscState(tl, color);
-    return tl;
-  }
-
-  /** Поставить фиксированный цвет светофора. */
-  _setTrafficLightColor(id, color /* 'red'|'yellow'|'green' */) {
-    const tl = this.lights.get(id);
-    if (!tl) return false;
-    tl.userData._discCycle = null;
-    setTrafficLightState(tl, color);
-    setDiscState(tl, color);
-    return true;
-  }
 
   /** Создать/обновить машинку по id. */
   _createCar(id, { x = 0, y = 0, z = 0, rot = 0 } = {}) {
@@ -416,24 +246,29 @@ export class World {
     return obj;
   }
 
-  _moveCar(id, { x, y, z = 0, rot = null } = {}) {
-    const obj = this.cars.get(id);
-    if (!obj) return false;
-    if (Number.isFinite(x) && Number.isFinite(y)) obj.setPosition(x, y, z);
-    if (Number.isFinite(rot)) obj.setRotationZ(normAngle(rot));
-    return true;
-  }
+    _moveCar(id, {x, y, z = 0, rot = null} = {}) {
+        const obj = this.cars.get(id);
+        if (!obj) return false;
+        if (Number.isFinite(x) && Number.isFinite(y)) obj.setPosition(x, y, z);
+        if (Number.isFinite(rot)) obj.setRotationZ(normAngle(rot));
+        return true;
+    }
 
-  _deleteCar(id) {
-    const obj = this.cars.get(id);
-    if (!obj) return false;
-    if (obj.parent) obj.parent.remove(obj);
-    this.cars.delete(id);
-    return true;
-  }
+    _deleteCar(id) {
+        const obj = this.cars.get(id);
+        if (!obj) return false;
 
-  update() {
-    // пока только тик — пригодится для анимаций, если добавишь
-    this.clock.getDelta();
-  }
+        if (obj.parent) {
+            obj.parent.remove(obj);
+        }
+
+        this.cars.delete(id);
+
+        return true;
+    }
+
+
+    update() {
+        this.clock.getDelta();
+    }
 }
