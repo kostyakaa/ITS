@@ -79,7 +79,9 @@ async function textureFromSVGorImage(url, targetSizePx, renderer) {
     const img = await loadImage(url);
     if (!img) return null;
 
-    const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
+    // const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
+    const size = Math.max(256, Math.min(4096, targetSizePx | 0 || 2048));
+
     const C = makeCanvas(size, size);
     const ctx = C.getContext("2d");
 
