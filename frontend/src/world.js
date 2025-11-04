@@ -55,16 +55,26 @@ async function loadImage(url) {
         loadingManager.itemStart(origUrl);
         let objUrl = null;
         try {
-            if (url.toLowerCase().endsWith(".svg") || url.startsWith("data:image/svg")) {
-                const res = await fetch(url);
-                let svg = await res.text();
-                // убираем фиксированные размеры и даём cover-поведение
-                svg = svg.replace(/\swidth="[^"]*"/, "")
-                    .replace(/\sheight="[^"]*"/, "");
-                if (!/preserveAspectRatio=/.test(svg)) {
-                    svg = svg.replace(/<svg\b([^>]*?)>/, '<svg$1 preserveAspectRatio="xMidYMid slice">');
+            const isSVG = /\.svg($|\?)/i.test(url) || url.startsWith("data:image/svg");
+            if (isSVG) {
+                let svgText = "";
+                if (url.startsWith("data:image/svg")) {
+                    // Safari iOS не умеет fetch(data:...), разбираем сами
+                    const comma = url.indexOf(",");
+                    const payload = url.slice(comma + 1);
+                    svgText = url.includes(";base64")
+                        ? decodeURIComponent(escape(atob(payload)))
+                        : decodeURIComponent(payload);
+                } else {
+                    const res = await fetch(url, {mode: "cors"});
+                    svgText = await res.text();
                 }
-                const blob = new Blob([svg], {type: "image/svg+xml"});
+                svgText = svgText.replace(/\swidth="[^"]*"/, "")
+                    .replace(/\sheight="[^"]*"/, "");
+                if (!/preserveAspectRatio=/.test(svgText)) {
+                    svgText = svgText.replace(/<svg\b([^>]*?)>/, '<svg$1 preserveAspectRatio="xMidYMid slice">');
+                }
+                const blob = new Blob([svgText], {type: "image/svg+xml"});
                 objUrl = URL.createObjectURL(blob);
             }
             const img = new Image();
