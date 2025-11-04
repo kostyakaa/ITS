@@ -3,6 +3,7 @@ from typing import Optional, List
 import asyncio
 import contextlib
 from fastapi import WebSocket, WebSocketDisconnect
+from starlette.websockets import WebSocketState
 
 from ..config import *
 from ..utils import kill_process_tree, convert_msg_to_dict
@@ -44,6 +45,9 @@ class Session:
                 text = line.decode('utf-8', errors='replace').rstrip("\r\n")
                 try:
                     for part in text.split(";"):
+                        part = part.strip()
+                        if not part:
+                            continue
                         self.out_queue.put_nowait(part)
                 except asyncio.QueueFull:
                     pass
@@ -63,6 +67,10 @@ class Session:
                 nonlocal buffer, last_flush
                 if not buffer:
                     return
+
+                if self.ws.application_state != WebSocketState.CONNECTED:
+                    return
+
                 await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
                 buffer = []
                 last_flush = asyncio.get_event_loop().time()
@@ -81,12 +89,12 @@ class Session:
                     else:
                         get_task.cancel()
 
+                    if self.proc and self.proc.returncode is not None and self.out_queue.empty():
+                        break
+
                     now = asyncio.get_event_loop().time()
                     if len(buffer) >= max_batch_size or (now - last_flush) >= flush_interval:
                         await flush()
-
-                    if self.proc and self.proc.returncode is not None and self.out_queue.empty():
-                        break
 
                 except WebSocketDisconnect:
                     break
