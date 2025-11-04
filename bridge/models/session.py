@@ -71,7 +71,10 @@ class Session:
                 if self.ws.application_state != WebSocketState.CONNECTED:
                     return
 
-                await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
+                try:
+                    await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
+                except WebSocketDisconnect:
+                    return
                 buffer = []
                 last_flush = asyncio.get_event_loop().time()
 
