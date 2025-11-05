@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
+import json
 
 from ..config import *
 from ..utils import kill_process_tree, convert_msg_to_dict
@@ -111,7 +112,6 @@ class Session:
         try:
             while True:
                 msg = await self.ws.receive_text()
-                print(f"sending {msg}")
                 try:
                     data = json.loads(msg)
                 except json.JSONDecodeError:
