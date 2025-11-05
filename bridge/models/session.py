@@ -108,6 +108,7 @@ class Session:
         """Слушает WS и отправляет всё в stdin симуляции."""
         assert self.proc and self.proc.stdin
         writer = self.proc.stdin
+        print("fdsfsjfsdfksdf")
         try:
             while True:
                 msg = await self.ws.receive_text()
