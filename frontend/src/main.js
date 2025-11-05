@@ -12,12 +12,8 @@ const canvas = document.querySelector("canvas.game") || undefined;
 const renderer = createRenderer(canvas);
 
 const scene = new THREE.Scene();
-// Инициализируем освещение для сцены. Функция createLights определена в graphics.js
-// и настраивает ambient, hemisphere и directional light с правильной теневой камерой.
 createLights(scene);
 const camera = createCamera();
-
-// свет теперь добавляется через createLights(scene) и не создаётся вручную
 
 const world = new World();
 world.attachRenderer?.(renderer);

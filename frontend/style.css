@@ -37,10 +37,10 @@ body {
 
 #score {
     position: absolute;
-    top: 20px;
+    bottom: 20px;
     left: 20px;
-
-    font-size: 2em;
+    line-height: 1.4;
+    font-size: 1.3em;
     color: white;
 }
 
