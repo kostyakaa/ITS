@@ -142,8 +142,8 @@ class Session:
                     await writer.drain()
                 except (BrokenPipeError, ConnectionResetError):
                     break
-        except WebSocketDisconnect:
-            pass
+        except WebSocketDisconnect as e:
+            logger.warning(f"WebSocket disconnected: {e}")
         finally:
             logger.info(f"pzdtc")
             with contextlib.suppress(Exception):
