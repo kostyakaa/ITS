@@ -4,10 +4,20 @@
 #include <chrono>
 #include <atomic>
 #include <string>
+#include <sstream>
+#include <cmath>
 
-std::atomic<bool> running(true);
+using clock_tt = std::chrono::steady_clock;
+using seconds_d = std::chrono::duration<double>;
+
+std::atomic<bool> running{true};
+std::atomic<bool> paused{false};
+std::atomic<double> time_scale{1.0};
+
 sim::Simulation simulation;
-float last_spawn = 0;
+double last_spawn = 0.0f;
+double last_time_print = 0.0f;
+
 
 void inputHandleLoop() {
     std::string line;
@@ -17,6 +27,26 @@ void inputHandleLoop() {
                 running = false;
                 break;
             }
+            if (line == "pause") {
+                paused = true;
+            } else if (line == "resume") {
+                paused = false;
+            } else if (line == "toggle") {
+                paused = !paused.load();
+            } else if (line.rfind("speed", 0) == 0) {
+                std::istringstream iss(line);
+                std::string cmd;
+                double k;
+                if (iss >> cmd >> k) {
+                    if (k < 0.0) {
+                        k = 0.0;
+                    }
+                    if (k > 100.0) {
+                        k = 100.0;
+                    }
+                    time_scale = k;
+                }
+            }
         } else {
             running = false;
             break;
@@ -25,19 +55,32 @@ void inputHandleLoop() {
 }
 
 void simulationLoop() {
-    const double target_dt = 0.016;
-    const auto target_frame_time = std::chrono::duration<double>(target_dt);
-    auto last_time = std::chrono::steady_clock::now();
+    const double target_dt = 1.0 / 60.0;
+    const seconds_d target_frame_time(target_dt);
+
+    auto last_time = clock_tt::now();
+    seconds_d acc{0.0};
+
+    const double max_sim_step = 0.05;
 
     while (running) {
-        auto now = std::chrono::steady_clock::now();
+        auto now = clock_tt::now();
         auto elapsed = now - last_time;
+        last_time = now;
+        acc += std::chrono::duration_cast<seconds_d>(elapsed);
 
-        if (elapsed >= target_frame_time) {
-            double dt = std::chrono::duration<double>(elapsed).count();
-            last_time = now;
+        while (acc >= target_frame_time && running) {
+            acc -= target_frame_time;
 
-            simulation.update(static_cast<float>(dt));
+            double sim_dt = paused ? 0.0 : (target_dt * time_scale.load());
+
+            if (sim_dt == 0.0)
+                continue;
+
+            if (sim_dt > max_sim_step)
+                sim_dt = max_sim_step;
+
+            simulation.update(static_cast<float>(sim_dt));
 
             if (std::abs(simulation.time() - last_spawn) > 1.5f) {
                 simulation.addRandomVehicle();
@@ -52,11 +95,27 @@ void simulationLoop() {
             if (!simulation.vehicles().empty()) {
                 std::cout << std::endl;
             }
-        } else {
-            auto sleep_time = duration_cast<std::chrono::milliseconds>(
-                target_frame_time - elapsed);
-            if (sleep_time.count() > 0) {
-                std::this_thread::sleep_for(sleep_time);
+            if (simulation.time() - last_time_print >= 1.0f) {
+                std::cout << "time " << simulation.time() << ";";
+
+                sim::CarSignal s2 = simulation.world().carSignalForLane(2);
+                sim::CarSignal s6 = simulation.world().carSignalForLane(6);
+
+                std::cout << "signal 0 " << static_cast<int>(s2)
+                    << ";signal 1 " << static_cast<int>(s6) <<
+                    std::endl;
+
+                last_time_print = simulation.time();
+            }
+
+        }
+
+        auto frame_left = target_frame_time - acc;
+        if (frame_left.count() > 0) {
+            auto sleep_ms = std::chrono::duration_cast<
+                std::chrono::milliseconds>(frame_left);
+            if (sleep_ms.count() > 0) {
+                std::this_thread::sleep_for(sleep_ms);
             }
         }
     }
@@ -69,11 +128,10 @@ int main() {
     simulation.initRoadNetwork();
 
     std::thread input_thread(inputHandleLoop);
-
-    std::thread printer_thread(simulationLoop);
+    std::thread sim_thread(simulationLoop);
 
     input_thread.join();
-    printer_thread.join();
+    sim_thread.join();
 
     return 0;
 }
