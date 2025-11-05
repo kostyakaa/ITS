@@ -56,44 +56,38 @@ class Session:
             await self.out_queue.put(f"[SIM] <reader error: {e}>")
 
     async def _batch_sender(self):
-        """Отправляет сообщения клиенту батчами в JSON: {"type":"batch","commands":[...]}"""
         try:
             buffer: List[str] = []
             flush_interval = FLUSH_INTERVAL_MS / 1000.0
-            max_batch_size = 20
-
+            max_batch_size = 10
             last_flush = asyncio.get_event_loop().time()
 
             async def flush():
                 nonlocal buffer, last_flush
                 if not buffer:
                     return
-
                 if self.ws.application_state != WebSocketState.CONNECTED:
+                    buffer = []
+                    last_flush = asyncio.get_event_loop().time()
                     return
-
                 try:
                     await self.ws.send_json({"type": "batch", "commands": list(map(convert_msg_to_dict, buffer))})
                 except (WebSocketDisconnect, RuntimeError):
+                    buffer = []
                     return
                 buffer = []
                 last_flush = asyncio.get_event_loop().time()
 
             while True:
                 try:
-                    get_task = asyncio.create_task(self.out_queue.get())
-                    done, pending = await asyncio.wait(
-                        {get_task},
-                        timeout=flush_interval,
-                        return_when=asyncio.FIRST_COMPLETED
-                    )
-                    if get_task in done:
-                        line = get_task.result()
+                    try:
+                        line = await asyncio.wait_for(self.out_queue.get(), timeout=flush_interval)
                         buffer.append(line)
-                    else:
-                        get_task.cancel()
+                    except asyncio.TimeoutError:
+                        pass
 
                     if self.proc and self.proc.returncode is not None and self.out_queue.empty():
+                        await flush()
                         break
 
                     now = asyncio.get_event_loop().time()
@@ -101,9 +95,13 @@ class Session:
                         await flush()
 
                 except WebSocketDisconnect:
+                    buffer = []
                     break
         finally:
-            pass
+            try:
+                await flush()
+            except Exception:
+                pass
 
     async def _stdin_pump(self):
         """Слушает WS и отправляет всё в stdin симуляции."""
@@ -138,15 +136,20 @@ class Session:
         finally:
             with contextlib.suppress(Exception):
                 writer.close()
+                await writer.wait_closed()
 
-    async def close(self):
-        if self.closed:
-            return
-        self.closed = True
 
-        for t in (self.stdin_pump_task, self.read_stdout_task, self.batch_sender_task):
-            if t:
-                t.cancel()
+async def close(self):
+    if self.closed:
+        return
+    self.closed = True
 
-        if self.proc:
-            await kill_process_tree(self.proc, grace_s=1.0)
+    tasks = [self.stdin_pump_task, self.read_stdout_task, self.batch_sender_task]
+    for t in tasks:
+        if t:
+            t.cancel()
+
+    await asyncio.gather(*(t for t in tasks if t), return_exceptions=True)
+
+    if self.proc:
+        await kill_process_tree(self.proc, grace_s=1.0)
