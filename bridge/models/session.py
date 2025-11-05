@@ -145,6 +145,7 @@ class Session:
         except WebSocketDisconnect:
             pass
         finally:
+            logger.info(f"pzdtc")
             with contextlib.suppress(Exception):
                 writer.close()
 
