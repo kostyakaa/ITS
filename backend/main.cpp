@@ -25,7 +25,7 @@ void inputHandleLoop() {
 }
 
 void simulationLoop() {
-    const double target_dt = 0.01;
+    const double target_dt = 0.016;
     const auto target_frame_time = std::chrono::duration<double>(target_dt);
     auto last_time = std::chrono::steady_clock::now();
 
