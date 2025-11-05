@@ -111,9 +111,24 @@ class Session:
         try:
             while True:
                 msg = await self.ws.receive_text()
-                data = (msg + "\n").encode("utf-8")
                 try:
-                    writer.write(data)
+                    data = json.loads(msg)
+                except json.JSONDecodeError:
+                    continue
+
+                if data.get("type") != "control":
+                    continue
+
+                cmd = str(data.get("cmd", "")).strip()
+                value = data.get("value")
+
+                if value is None or value == "":
+                    line = f"{cmd}\n"
+                else:
+                    line = f"{cmd} {value}\n"
+
+                try:
+                    writer.write(line.encode("utf-8"))
                     await writer.drain()
                 except (BrokenPipeError, ConnectionResetError):
                     break
