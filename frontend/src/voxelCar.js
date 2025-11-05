@@ -91,9 +91,6 @@ export class VoxelCar extends THREE.Group {
     this.add(box(0.12, W * 0.92, 0.22, M.bumper,  L * 0.5 - 0.06, 0, 0.15));
     this.add(box(0.12, W * 0.92, 0.22, M.bumper, -L * 0.5 + 0.06, 0, 0.15));
 
-    // «юбка» по бокам
-    this.add(box(L * 0.98, 0.08, 0.18, M.fender, 0,  W * 0.5 - 0.04, 0.18));
-    this.add(box(L * 0.98, 0.08, 0.18, M.fender, 0, -W * 0.5 + 0.04, 0.18));
 
     // крыша — большой белый куб
     this.add(box(L * 0.76, W * 0.76, roofH, M.roof, 0, 0, H + roofH / 2));

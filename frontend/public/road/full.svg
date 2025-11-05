@@ -48,18 +48,19 @@
 <path d="M4332 4297H4299V4333H4332V4297Z" fill="#26282D"/>
 </g>
 <g filter="url(#filter3_dd_23_106)">
-<path d="M5354 10082V5805" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M4639.36 10087V5809.99" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M4282.05 5879.02L5710.05 5879.02" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
-<path d="M4646.01 -80.0103L4646.01 4197" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M5360.65 -85.0005L5360.65 4192.01" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M5717.95 4122.98L4289.95 4122.98" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
-<path d="M-76.9634 5355.01L4200.05 5355.01" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M-81.9478 4640.5L4195.06 4640.5" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M4126.03 4283.06L4126.03 5711.06" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
-<path d="M10078.1 4647.01L5801.05 4647.01" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M10083 5359.65L5806.04 5359.65" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
-<path d="M5875.07 5718.96L5875.07 4290.96" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
+<path d="M4282.05 5878.99L5710.05 5878.99" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
+<path d="M4638 -340.932L4638 3936.08" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M4638 6067.02L4638 10344" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M5357 6067.03L5357 10344" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M5356.66 -341.024L5356.66 3935.99" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M5717.96 4122.96L4289.96 4122.95" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
+<path d="M4125.98 4283.12L4125.98 5711.12" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
+<path d="M-339.917 5356.84L3937.09 5356.84" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M-340.01 4638.18L3937 4638.18" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M6097.99 5356.84L10375 5356.84" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M6097.99 4648L10375 4648" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M-340.01 4638.18L3937 4638.18" stroke="#6A7284" stroke-width="30" stroke-dasharray="200 200"/>
+<path d="M5875.03 5719.04L5875.03 4291.04" stroke="#6A7284" stroke-width="200" stroke-dasharray="30 60"/>
 </g>
 <g filter="url(#filter4_n_23_106)">
 <rect x="5703" y="4023" width="15" height="200" fill="#516A2C"/>
@@ -149,7 +150,7 @@
 <feMergeNode in="displacedImage"/>
 </feMerge>
 </filter>
-<filter id="filter3_dd_23_106" x="-339.945" y="-339" width="10681" height="10688" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<filter id="filter3_dd_23_106" x="-598.008" y="-595.023" width="11227" height="11197.1" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
 <feFlood flood-opacity="0" result="BackgroundImageFix"/>
 <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
 <feMorphology radius="4" operator="dilate" in="SourceAlpha" result="effect1_dropShadow_23_106"/>

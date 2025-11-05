@@ -36,7 +36,7 @@ export function createCamera() {
   const height = base;
 
   const cam = new THREE.OrthographicCamera(
-    -width / 2, width / 2, height / 2, -height / 2,
+    -width / 5, width / 5, height / 5, -height / 5,
     CAMERA.near || 0.1, CAMERA.far || 2000
   );
   cam.up.set(0, 0, 1);
