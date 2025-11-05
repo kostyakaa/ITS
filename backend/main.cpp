@@ -27,7 +27,9 @@ void inputHandleLoop() {
                 running = false;
                 break;
             }
-            if (line == "pause") {
+            if (line == "reset") {
+                simulation.reset();
+            } else if (line == "pause") {
                 paused = true;
             } else if (line == "resume") {
                 paused = false;
