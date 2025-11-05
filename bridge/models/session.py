@@ -8,6 +8,10 @@ from starlette.websockets import WebSocketState
 from ..config import *
 from ..utils import kill_process_tree, convert_msg_to_dict
 
+import logging
+logger = logging.getLogger("uvicorn.error")
+
+
 
 @dataclass
 class Session:
@@ -112,7 +116,7 @@ class Session:
         try:
             while True:
                 msg = await self.ws.receive_text()
-                print(f"sending {msg}")
+                logger.info(f"sending {msg}")
                 try:
                     data = json.loads(msg)
                 except json.JSONDecodeError:
