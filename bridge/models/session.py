@@ -112,11 +112,9 @@ class Session:
         """Слушает WS и отправляет всё в stdin симуляции."""
         assert self.proc and self.proc.stdin
         writer = self.proc.stdin
-        print("fdsfsjfsdfksdf")
         try:
             while True:
                 msg = await self.ws.receive_text()
-                logger.info(f"sending {msg}")
                 try:
                     data = json.loads(msg)
                 except json.JSONDecodeError:
@@ -132,6 +130,8 @@ class Session:
                     line = f"{cmd}\n"
                 else:
                     line = f"{cmd} {value}\n"
+
+                logger.info(f"sending `{line}`")
 
                 try:
                     writer.write(line.encode("utf-8"))
