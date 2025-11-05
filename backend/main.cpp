@@ -60,7 +60,7 @@ void simulationLoop() {
     auto last_time = clock_tt::now();
     seconds_d acc{0.0};
 
-    const double max_sim_step = 0.05;
+    const double max_sim_step = 0.5;
 
     while (running) {
         auto now = clock_tt::now();
