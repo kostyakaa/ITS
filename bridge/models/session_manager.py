@@ -9,6 +9,7 @@ class SessionManager:
 
     async def create(self, ws, cmd: Optional[List[str]] = None) -> Session:
         session_id = str(uuid.uuid4())
+        print("kdasdaskjdaskjd")
         s = Session(ws=ws, session_id=session_id, cmd=(cmd or ["./test"]))
         self.sessions[session_id] = s
         await s.start()
