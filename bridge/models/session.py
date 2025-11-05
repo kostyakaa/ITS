@@ -117,8 +117,11 @@ class Session:
                 msg = await self.ws.receive_text()
                 try:
                     data = json.loads(msg)
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
+                    logger.warn(f"error json parse `{e}`")
                     continue
+
+                logger.info(f"got: {data}")
 
                 if data.get("type") != "control":
                     continue
