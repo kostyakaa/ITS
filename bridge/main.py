@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+import asyncio
 import os
 
 from .models import SessionManager, Session
@@ -44,7 +45,10 @@ async def websocket_endpoint(ws: WebSocket):
         session = await manager.create(ws, cmd=[str(BIN_PATH)])
         await ws.send_json({"type": "created", "session_id": session.session_id})
 
-        await session.batch_sender_task
+        await asyncio.wait(
+            [session.stdin_pump_task, session.read_stdout_task, session.batch_sender_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
 
     except WebSocketDisconnect:
         pass

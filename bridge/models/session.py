@@ -138,18 +138,17 @@ class Session:
                 writer.close()
                 await writer.wait_closed()
 
+    async def close(self):
+        if self.closed:
+            return
+        self.closed = True
 
-async def close(self):
-    if self.closed:
-        return
-    self.closed = True
+        tasks = [self.stdin_pump_task, self.read_stdout_task, self.batch_sender_task]
+        for t in tasks:
+            if t:
+                t.cancel()
 
-    tasks = [self.stdin_pump_task, self.read_stdout_task, self.batch_sender_task]
-    for t in tasks:
-        if t:
-            t.cancel()
+        await asyncio.gather(*(t for t in tasks if t), return_exceptions=True)
 
-    await asyncio.gather(*(t for t in tasks if t), return_exceptions=True)
-
-    if self.proc:
-        await kill_process_tree(self.proc, grace_s=1.0)
+        if self.proc:
+            await kill_process_tree(self.proc, grace_s=1.0)
