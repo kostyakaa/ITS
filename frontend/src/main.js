@@ -177,3 +177,37 @@ function applyServerState(patch) {
     world.setTrafficMode?.(SIM.tlMode);
 }
 
+// ==== HUD counters wiring (добавь в main.js рядом с блоком HUD UI SYNC) ====
+
+const StatsUI = {
+  carsInEl: document.getElementById('carsIn'),
+  carsOutEl: document.getElementById('carsOut'),
+  // если позже захочешь — sec/avgLife тоже можно обновлять тут
+};
+
+const Stats = {
+  carsIn: Number(StatsUI.carsInEl?.textContent || 0),
+  carsOut: Number(StatsUI.carsOutEl?.textContent || 0),
+};
+
+function paintStats() {
+  if (StatsUI.carsInEl)  StatsUI.carsInEl.textContent  = String(Stats.carsIn);
+  if (StatsUI.carsOutEl) StatsUI.carsOutEl.textContent = String(Stats.carsOut);
+}
+
+// подписки на события World
+world.addEventListener('car:created', () => {
+  Stats.carsIn += 1;
+  paintStats();
+});
+
+world.addEventListener('car:deleted', (e) => {
+  Stats.carsOut += 1;
+  paintStats();
+
+  // если когда-нибудь понадобится средняя «жизнь»:
+  // const { lifeMs } = e.detail || {};
+  // ... накапливай и обновляй #avgLife ...
+});
+
+paintStats();
