@@ -37,35 +37,69 @@ function setupTexture(renderer, tex) {
     if ("SRGBColorSpace" in THREE) tex.colorSpace = THREE.SRGBColorSpace;
     else if ("sRGBEncoding" in THREE) tex.encoding = THREE.sRGBEncoding;
 
-    const aniso =
-        renderer?.capabilities?.getMaxAnisotropy?.() != null
-            ? renderer.capabilities.getMaxAnisotropy()
-            : 8;
-    tex.anisotropy = Math.max(8, aniso || 8);
-
+    const aniso = renderer?.capabilities?.getMaxAnisotropy?.() ?? 8;
+    tex.anisotropy = Math.min(aniso, 8);
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
     tex.wrapS = THREE.ClampToEdgeWrapping;
     tex.wrapT = THREE.ClampToEdgeWrapping;
     tex.needsUpdate = true;
     return tex;
 }
 
-function loadImage(url) {
-    return new Promise((resolve) => {
+async function loadImage(url) {
+    return new Promise(async (resolve) => {
         if (!url) return resolve(null);
-        loadingManager.itemStart(url);
-        const img = new Image();
-        img.crossOrigin = "anonymous"; // безопасно для same-origin; не мешает и при локальной подаче
-        img.onload = () => {
-            loadingManager.itemEnd(url);
-            resolve(img);
-        }
-        img.onerror = () => {
-            loadingManager.itemError(url);
+        const origUrl = url;
+        loadingManager.itemStart(origUrl);
+        let objUrl = null;
+        try {
+            const isSVG = /\.svg($|\?)/i.test(url) || url.startsWith("data:image/svg");
+            if (isSVG) {
+                let svgText = "";
+                if (url.startsWith("data:image/svg")) {
+                    // Safari iOS не умеет fetch(data:...), разбираем сами
+                    const comma = url.indexOf(",");
+                    const payload = url.slice(comma + 1);
+                    svgText = url.includes(";base64")
+                        ? decodeURIComponent(escape(atob(payload)))
+                        : decodeURIComponent(payload);
+                } else {
+                    const res = await fetch(url, {mode: "cors"});
+                    svgText = await res.text();
+                }
+                svgText = svgText.replace(/\swidth="[^"]*"/, "")
+                    .replace(/\sheight="[^"]*"/, "");
+                if (!/preserveAspectRatio=/.test(svgText)) {
+                    svgText = svgText.replace(/<svg\b([^>]*?)>/, '<svg$1 preserveAspectRatio="xMidYMid slice">');
+                }
+                const blob = new Blob([svgText], {type: "image/svg+xml"});
+                objUrl = URL.createObjectURL(blob);
+            }
+            const img = new Image();
+            img.decoding = "async";
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+                loadingManager.itemEnd(origUrl);
+                if (objUrl) URL.revokeObjectURL(objUrl);
+                resolve(img);
+            };
+            img.onerror = () => {
+                loadingManager.itemError(origUrl);
+                if (objUrl) URL.revokeObjectURL(objUrl);
+                resolve(null);
+            };
+            img.src = objUrl || url;
+        } catch (e) {
+            console.error("loadImage error:", e);
+            loadingManager.itemError(origUrl);
+            if (objUrl) URL.revokeObjectURL(objUrl);
             resolve(null);
         }
-        img.src = url;
     });
 }
+
 
 function makeCanvas(w, h) {
     const C = document.createElement("canvas");
@@ -74,14 +108,37 @@ function makeCanvas(w, h) {
     return C;
 }
 
+function disposeObject3D(root) {
+    if (!root) return;
+    root.traverse?.((child) => {
+        if (child.isMesh) {
+            child.geometry?.dispose?.();
+            const m = child.material;
+            if (Array.isArray(m)) m.forEach((mm) => {
+                mm?.map?.dispose?.();
+                mm?.dispose?.();
+            });
+            else {
+                m?.map?.dispose?.();
+                m?.dispose?.();
+            }
+        }
+    });
+}
+
+
 async function textureFromSVGorImage(url, targetSizePx, renderer) {
     // Универсальная отрисовка в Canvas → CanvasTexture (надёжнее, чем прямой TextureLoader для SVG)
     const img = await loadImage(url);
     if (!img) return null;
 
-    const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
+    // const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
+    const size = Math.max(256, Math.min(4096, targetSizePx | 0 || 2048));
+
     const C = makeCanvas(size, size);
     const ctx = C.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     // заполняем фон (на случай прозрачного SVG)
     ctx.fillStyle = "#2f3545";
@@ -99,29 +156,6 @@ async function textureFromSVGorImage(url, targetSizePx, renderer) {
         ctx.drawImage(img, dx, dy, dw, dh);
     } else {
         // fallback — просто нарисовать как есть
-        ctx.drawImage(img, 0, 0, size, size);
-    }
-
-    const tex = new THREE.CanvasTexture(C);
-    return setupTexture(renderer, tex);
-}
-
-async function textureFromLayers(layers, targetSizePx, renderer) {
-    const order = ["base", "edges", "markings", "crosswalks"]; // порядок композиции
-    const size = Math.max(256, Math.min(16384, targetSizePx | 0 || 8192));
-    const C = makeCanvas(size, size);
-    const ctx = C.getContext("2d");
-    ctx.imageSmoothingEnabled = true;
-
-    // фон
-    ctx.fillStyle = "#2f3545";
-    ctx.fillRect(0, 0, size, size);
-
-    for (const key of order) {
-        const url = layers?.[key];
-        if (!url) continue;
-        const img = await loadImage(url);
-        if (!img) continue;
         ctx.drawImage(img, 0, 0, size, size);
     }
 
@@ -157,6 +191,16 @@ class CarObject extends SceneObject {
     }
 }
 
+const __matCache = new Map();
+const getLambert = (color) => {
+    const k = (color >>> 0); // int key
+    if (__matCache.has(k)) return __matCache.get(k);
+    const m = new THREE.MeshLambertMaterial({color: k, flatShading: true});
+    __matCache.set(k, m);
+    return m;
+};
+
+
 export function makeTree({
                              height = 30,           // базовая высота кроны (в твоих единицах)
                              s = 0.06,              // 👉 scaleFactor: 0.45 по умолчанию — больше НЕ огромные
@@ -171,7 +215,7 @@ export function makeTree({
     const trunkW = 15 * s, trunkD = 15 * s, trunkH = 20 * s;
     const trunk = new THREE.Mesh(
         new THREE.BoxGeometry(trunkW, trunkD, trunkH),
-        new THREE.MeshLambertMaterial({color: trunkColor, flatShading: true})
+        getLambert(trunkColor)
     );
     trunk.position.z = trunkH / 2;             // стоит вертикально (никакого инверта)
     trunk.castShadow = trunk.receiveShadow = true;
@@ -191,7 +235,7 @@ export function makeTree({
 
         const seg = new THREE.Mesh(
             new THREE.BoxGeometry(w, d, hPart),
-            new THREE.MeshLambertMaterial({color: crownColor, flatShading: true})
+            getLambert(crownColor)
         );
         seg.position.z = zCursor + hPart / 2;
         seg.castShadow = seg.receiveShadow = true;
@@ -341,16 +385,22 @@ export class World {
         this.group.add(forest);
         this._trees = trees;
 
+        // freeze transforms для статических групп
+        [outer, inner, sidewalks, forest, trees].forEach(o => {
+            if (!o) return;
+            o.matrixAutoUpdate = false;
+            o.updateMatrixWorld(true);
+        });
 
     }
 
     // -------- dynamic road (SVG / IMG / layers) --------
     async _buildRoad() {
         const sizeMeters = TEXTURE?.meters ?? WORLD.size ?? 100;
-        const seg = Math.max(1, Math.floor((sizeMeters ?? 100) * 2));
+        const seg = 1;
         const geom = new THREE.PlaneGeometry(sizeMeters, sizeMeters, seg, seg);
 
-        const sizePx = TEXTURE?.pixels ?? 8192;
+        const sizePx = TEXTURE?.pixels ?? 4096;
         let texture = null;
 
         // 1) Пытаемся прогнать через канвас любую картинку (SVG/PNG/JPG)
@@ -358,18 +408,9 @@ export class World {
             texture = await textureFromSVGorImage(TEXTURE.url, sizePx, this.renderer);
         }
 
-        // 2) Если нет общего url — пробуем собрать из слоёв
-        if (!texture && TEXTURE?.layers && Object.values(TEXTURE.layers).some(Boolean)) {
-            texture = await textureFromLayers(TEXTURE.layers, sizePx, this.renderer);
-        }
-
-        const mat = new THREE.MeshStandardMaterial({
+        const mat = new THREE.MeshLambertMaterial({
             color: texture ? 0xffffff : 0x2f3545,
-            map: texture || null,
-            metalness: 0.0,
-            roughness: 0.9,
-            displacementMap: null,
-            displacementScale: 0,
+            map: texture || null
         });
 
         const mesh = new THREE.Mesh(geom, mat);
@@ -464,7 +505,8 @@ export class World {
     _deleteCar(id) {
         const obj = this.cars.get(id);
         if (!obj) return false;
-        if (obj.parent) obj.parent.remove(obj);
+        if (obj.node?.parent) obj.node.parent.remove(obj.node);
+        disposeObject3D(obj.node);
         this.cars.delete(id);
         return true;
     }
