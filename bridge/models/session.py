@@ -115,6 +115,7 @@ class Session:
         try:
             while True:
                 msg = await self.ws.receive_text()
+                logger.info(f"got: {msg}")
                 try:
                     data = json.loads(msg)
                 except json.JSONDecodeError as e:
