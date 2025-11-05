@@ -49,9 +49,6 @@ void inputHandleLoop() {
                     time_scale = k;
                 }
             }
-        } else {
-            running = false;
-            break;
         }
     }
 }
