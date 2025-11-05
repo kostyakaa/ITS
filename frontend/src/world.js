@@ -305,8 +305,9 @@ export function makeSymmetricForest(list, {s = 0.45, mirror = true} = {}) {
     return group;
 }
 
-export class World {
+export class World extends EventTarget {
     constructor() {
+        super();
         this.group = new THREE.Group();
         this.clock = new THREE.Clock();
         this.renderer = null;
@@ -342,6 +343,10 @@ export class World {
         // если текстура дороги уже есть — подтянем анизотропию/цветовое пространство
         const tex = this._road?.material?.map;
         if (tex) setupTexture(this.renderer, tex);
+    }
+
+    _emit(type, detail) {
+        this.dispatchEvent(new CustomEvent(type, {detail}));
     }
 
     // -------- static parts (бордюры/тротуары) --------
@@ -487,6 +492,7 @@ export class World {
 
     /** Создать/обновить машинку по id. */
     _createCar(id, {x = 5000, y = 0, z = 0, rot = 0} = {}) {
+        const isNew = !this.cars.has(id);
         let obj = this.cars.get(id);
         if (!obj) {
             obj = new CarObject().addTo(this.group);
@@ -494,6 +500,8 @@ export class World {
         }
         const yaw = normAngle(rot) ?? 0;
         obj.setPosition(x, y, z).setRotationZ(yaw);
+        if (isNew) this._emit('car:created', {id});
+
         return obj;
     }
 
@@ -511,6 +519,8 @@ export class World {
         if (obj.node?.parent) obj.node.parent.remove(obj.node);
         disposeObject3D(obj.node);
         this.cars.delete(id);
+        this._emit('car:deleted', {id, carsTotal: this.cars.size});
+
         return true;
     }
 
