@@ -54,7 +54,7 @@ void inputHandleLoop() {
 }
 
 void simulationLoop() {
-    const double target_dt = 1.0 / 24.0;
+    const double target_dt = 1.0 / 40.0;
     const seconds_d target_frame_time(target_dt);
 
     auto last_time = clock_tt::now();
