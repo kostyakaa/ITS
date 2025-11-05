@@ -4,13 +4,10 @@ import asyncio
 import contextlib
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
+import json
 
 from ..config import *
 from ..utils import kill_process_tree, convert_msg_to_dict
-
-import logging
-logger = logging.getLogger("uvicorn.error")
-
 
 
 @dataclass
@@ -115,14 +112,10 @@ class Session:
         try:
             while True:
                 msg = await self.ws.receive_text()
-                logger.info(f"got: {msg}")
                 try:
                     data = json.loads(msg)
-                except json.JSONDecodeError as e:
-                    logger.warn(f"error json parse `{e}`")
+                except json.JSONDecodeError:
                     continue
-
-                logger.info(f"got: {data}")
 
                 if data.get("type") != "control":
                     continue
@@ -135,17 +128,14 @@ class Session:
                 else:
                     line = f"{cmd} {value}\n"
 
-                logger.info(f"sending `{line}`")
-
                 try:
                     writer.write(line.encode("utf-8"))
                     await writer.drain()
                 except (BrokenPipeError, ConnectionResetError):
                     break
-        except Exception as e:
-            logger.warning(f"WebSocket disconnected: {e}")
+        except WebSocketDisconnect:
+            pass
         finally:
-            logger.info(f"pzdtc")
             with contextlib.suppress(Exception):
                 writer.close()
 
