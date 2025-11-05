@@ -59,6 +59,19 @@ class Simulation {
         kill();
     }
 
+    void reset() {
+        vehicles_.clear();
+        vehicle_ptrs_.clear();
+        object_ptrs_.clear();
+
+        clock_.now = 0.0;
+
+        initSignals();
+
+        syncVehicles();
+    }
+
+
     void buildRoad(const Vec2& from, const Vec2& to, const std::string& name) {
         auto result = network_.addStraightRoad(from, to, 2, 3.5, 50.0);
         // std::cout << "Built road: " << name
@@ -157,7 +170,6 @@ class Simulation {
     std::vector<Vehicle> vehicles_;
     std::vector<Vehicle*> vehicle_ptrs_;
     std::vector<SimObject*> object_ptrs_;
-    std::vector<RouteTracker> routes_;
     WorldContext world_;
     Pathfinder pathfinder_;
     RNG rngg{static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count())};
