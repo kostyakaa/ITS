@@ -18,7 +18,6 @@ struct VehicleParams {
     double timeHeadway{1.5};
     // Желаемый временной интервал до препятсвия спереди
     double minGap{2.0}; // минимальный зазор при полной остановке
-    double laneChangeTime{2.0};
     // секунды латерального перехода (когда добавите LC)
     double viewDistance{80.0};
     double fovRad{0.7}; // ~149°
@@ -30,16 +29,16 @@ struct DriverProfile {
     double politeness{0.5}; // будущие уступки
     double aggression{0.5};
     double missProb{0.05}; // шанс «пропустить» кадр смены светофора
-    double minLaneChangeDelay_{5.0};
+    double minLaneChangeDelay{5.0};
     // секунд - минимальное время после появления для перестроения
-    double laneChangeDuration_ = 3.0; // секунд на полное перестроение
+    double laneChangeDuration = 2.0; // секунд на полное перестроение
 };
 
 struct VisibleObject {
     SimObject* object;
     double distance;
     double speed;
-    bool is_in_target_lane;
+    bool isInTargetLane;
 };
 
 enum class VehicleMode { Driving, Braking, Stopped, LaneChanging };
