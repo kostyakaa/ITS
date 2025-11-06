@@ -377,7 +377,7 @@ bool Vehicle::checkIfCanMergeSafely(
     const std::vector<VisibleVehicle>& visible) {
     for (const auto& v : visible) {
         double time_to_intercept = v.distance / (v.relative_speed + 0.1);
-        if (time_to_intercept < driver_.laneChangeDuration * 1.2) {
+        if (time_to_intercept < driver_.laneChangeDuration * 1.5) {
             return false;
         }
     }
@@ -387,7 +387,7 @@ bool Vehicle::checkIfCanMergeSafely(
 bool Vehicle::isLaneChangeStillSafe(WorldContext& world) {
     auto visible = getVisibleVehiclesInLane(world, lc_request_->target_lane);
     for (const auto& v : visible) {
-        if (v.distance < params_.minGap * 2.0)
+        if (v.distance < params_.minGap * 4.0)
             return false;
     }
     return true;

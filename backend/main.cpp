@@ -14,6 +14,7 @@ using seconds_d = std::chrono::duration<double>;
 std::atomic<bool> running{true};
 std::atomic<bool> paused{false};
 std::atomic<double> time_scale{1.0};
+std::atomic<double> cars_spawn_time{1.0};
 
 sim::Simulation simulation;
 double last_spawn = 0.0f;
@@ -52,6 +53,19 @@ void inputHandleLoop() {
                     }
                     time_scale = k;
                 }
+            } else if (line.rfind("density", 0) == 0) {
+                std::istringstream iss(line);
+                std::string cmd;
+                double k;
+                if (iss >> cmd >> k) {
+                    if (k < 0.5) {
+                        k = 0.5;
+                    }
+                    if (k > 3.0) {
+                        k = 3;
+                    }
+                    cars_spawn_time = k;
+                }
             }
         } else {
             running = false;
@@ -88,7 +102,7 @@ void simulationLoop() {
 
             simulation.update(static_cast<float>(sim_dt));
 
-            if (std::abs(simulation.time() - last_spawn) > 1.5f) {
+            if (std::abs(simulation.time() - last_spawn) > cars_spawn_time) {
                 simulation.addRandomVehicle();
                 last_spawn = simulation.time();
             }
