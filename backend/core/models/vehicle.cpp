@@ -20,6 +20,7 @@ Vehicle::Vehicle(const VehicleParams& vp, const DriverProfile& dp,
 Vehicle Vehicle::randomVehicle(int from, RouteTracker rt) {
     DriverProfile dp{};
     VehicleParams vp{};
+    vp.fovRad = 0.8;
     return {vp, dp, from, 0, 0, std::move(rt)};
 }
 
