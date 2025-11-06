@@ -27,7 +27,6 @@ async def root():
 async def websocket_endpoint(ws: WebSocket):
     await ws.accept()
     session: Optional[Session] = None
-
     try:
         raw = await ws.receive_text()
         try:
