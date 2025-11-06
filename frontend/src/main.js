@@ -14,7 +14,6 @@ const renderer = createRenderer(canvas);
 const scene = new THREE.Scene();
 createLights(scene);
 const camera = createCamera();
-
 const world = new World();
 world.attachRenderer?.(renderer);
 scene.add(world.group);
