@@ -20,8 +20,8 @@ Vehicle::Vehicle(const VehicleParams& vp, const DriverProfile& dp,
 Vehicle Vehicle::randomVehicle(int from, RouteTracker rt) {
     DriverProfile dp{};
     VehicleParams vp{};
-    vp.fovRad = 0.8;
     vp.minGap = 1;
+    dp.laneChangeDuration = 2;
     return {vp, dp, from, 0, 0, std::move(rt)};
 }
 
@@ -86,11 +86,11 @@ void Vehicle::computeLongitudinal(WorldContext& world, const Lane& L,
         world.findLeaderInLane(L.id, s_, &gapToLeader)) {
         vFront = leader->v();
     }
-    if (L.isConnector || abs(s_ - L.stopLineS.value()) < 5) {
+    if (L.isConnector || abs(s_ - L.stopLineS.value()) < 3) {
         std::vector<VisibleObject> objects = getVisibleObjects(world);
         if (!objects.empty()) {
-            vFront = std::min(vFront, objects[0].speed / 10);
-            gapToLeader = std::min(gapToLeader, objects[0].distance - 2);
+            vFront = std::min(vFront, 0.0);
+            gapToLeader = std::min(gapToLeader, objects[0].distance - 3);
         }
     }
 
@@ -286,7 +286,7 @@ void Vehicle::handleRequestingState(WorldContext& world) {
 }
 
 void Vehicle::executeLaneChange(double dt, WorldContext& world) {
-    lateral_progress_ += dt / driver_.laneChangeDuration_;
+    lateral_progress_ += dt / driver_.laneChangeDuration;
 
     if (lateral_progress_ >= 1.0) {
         completeLaneChange(world);
@@ -300,7 +300,7 @@ void Vehicle::executeLaneChange(double dt, WorldContext& world) {
 }
 
 void Vehicle::abortLaneChange(double dt, WorldContext& world) {
-    lateral_progress_ -= dt / driver_.laneChangeDuration_;
+    lateral_progress_ -= dt / driver_.laneChangeDuration;
     if (lateral_progress_ <= 0.0) {
         lateral_progress_ = 0.0;
         lc_state_ = LaneChangeState::None;
@@ -377,7 +377,7 @@ bool Vehicle::checkIfCanMergeSafely(
     const std::vector<VisibleVehicle>& visible) {
     for (const auto& v : visible) {
         double time_to_intercept = v.distance / (v.relative_speed + 0.1);
-        if (time_to_intercept < driver_.laneChangeDuration_ * 1.2) {
+        if (time_to_intercept < driver_.laneChangeDuration * 1.2) {
             return false;
         }
     }
