@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <csignal>
 
 using clock_tt = std::chrono::steady_clock;
 using seconds_d = std::chrono::duration<double>;
@@ -18,6 +19,9 @@ sim::Simulation simulation;
 double last_spawn = 0.0f;
 double last_time_print = 0.0f;
 
+void on_signal(int) {
+    running = false;
+}
 
 void inputHandleLoop() {
     std::string line;
@@ -49,6 +53,9 @@ void inputHandleLoop() {
                     time_scale = k;
                 }
             }
+        } else {
+            running = false;
+            break;
         }
     }
 }
@@ -123,6 +130,9 @@ void simulationLoop() {
 int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
+
+    std::signal(SIGTERM, on_signal);
+    std::signal(SIGINT, on_signal);
 
     simulation.initRoadNetwork();
 
