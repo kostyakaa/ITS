@@ -5,7 +5,7 @@ import uuid
 
 class SessionManager:
     def __init__(self):
-        self.sessions = {}
+        self.sessions: dict[str, Session] = {}
 
     async def create(self, ws, cmd: Optional[List[str]] = None) -> Session:
         session_id = str(uuid.uuid4())

@@ -5,6 +5,9 @@ import contextlib
 from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 import json
+import logging
+
+uvicorn_logger = logging.getLogger("uvicorn.error")
 
 from ..config import *
 from ..utils import kill_process_tree, convert_msg_to_dict
@@ -27,7 +30,8 @@ class Session:
             *self.cmd,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT
+            stderr=asyncio.subprocess.STDOUT,
+            start_new_session=True,
         )
 
         self.read_stdout_task = asyncio.create_task(self._read_stdout())
@@ -139,16 +143,18 @@ class Session:
                 await writer.wait_closed()
 
     async def close(self):
-        if self.closed:
-            return
+        if self.closed: return
         self.closed = True
 
         tasks = [self.stdin_pump_task, self.read_stdout_task, self.batch_sender_task]
         for t in tasks:
-            if t:
-                t.cancel()
-
+            if t: t.cancel()
         await asyncio.gather(*(t for t in tasks if t), return_exceptions=True)
+
+        if self.proc and self.proc.stdin and self.proc.returncode is None:
+            with contextlib.suppress(Exception):
+                self.proc.stdin.write(b"exit\n")
+                await self.proc.stdin.drain()
 
         if self.proc:
             await kill_process_tree(self.proc, grace_s=1.0)
