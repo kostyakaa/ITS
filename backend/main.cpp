@@ -61,8 +61,8 @@ void inputHandleLoop() {
                     if (k < 0.5) {
                         k = 0.5;
                     }
-                    if (k > 3.0) {
-                        k = 3;
+                    if (k > 5.0) {
+                        k = 5;
                     }
                     cars_spawn_time = k;
                 }
