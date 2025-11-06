@@ -142,12 +142,13 @@ body {
 .panel--settings {
     left: 12px;
     top: 12px;
+    width: min(520px, 46vw);
 }
 
 .panel--stats {
     left: 12px;
     bottom: 12px;
-    width: min(560px, 46vw);
+    width: min(520px, 46vw);
 }
 
 /* Заголовок */
@@ -219,6 +220,11 @@ body {
     font-size: var(--hud-text-size);
     line-height: 1.6;
 }
+
+.panel__body > *:not(:last-child) {
+    margin-bottom: 20px;
+}
+
 
 .panel:not([open]) .panel__body {
     max-height: 0;

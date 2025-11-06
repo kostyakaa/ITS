@@ -27,15 +27,13 @@ window.WORLD = world;
 
 API.init({
     lights: [
-        {id: "tl-1", x: -7.5, y: 10.5, z: 0.25, rot: Math.PI / 2, color: "red"},
-        {id: "tl-2", x: 7.5, y: -10.5, z: 0.25, rot: Math.PI / 2 + Math.PI, color: "green"},
+        {id: "tl-1", x: -7.5, y: 10.5, z: 0.25, rot: Math.PI / 2, color: "yellow"},
+        {id: "tl-2", x: 7.5, y: -10.5, z: 0.25, rot: Math.PI / 2 + Math.PI, color: "yellow"},
         {id: "tl-3", x: 10.5, y: 7.5, z: 0.25, rot: 0, color: "yellow"},
         {id: "tl-4", x: -10.5, y: -7.5, z: 0.25, rot: Math.PI, color: "yellow"},
     ],
     cars: []
 });
-
-API.setTrafficLightColor('tl-1', 'red');
 
 
 attachResize(renderer, camera);
@@ -59,21 +57,18 @@ const UI = {
     tlRadios: Array.from(document.querySelectorAll('input[name="tlMode"]')),
 };
 
-// локальное состояние (источник правды)
 const SIM = {
     paused: false,
     timeScale: Number(UI.speed?.value || 1),
-    density: Number(UI.density?.value || 50),
+    density: Number(UI.density?.value || 1.5),
     tlMode: UI.tlRadios.find(r => r.checked)?.value || 'mode1',
 };
 
-// форматеры
 const fmt = {
     speed: v => '×' + Number(v).toFixed(2),
-    density: v => Math.round(Number(v)) + '%',
+    density: v => Number(v).toFixed(1) + 's',
 };
 
-// ——— отрисовка (обновляет ЛЕЙБЛЫ, СЛАЙДЕРЫ, РАДИО, КНОПКУ) ———
 function paintSpeed() {
     if (UI.speed) UI.speed.value = SIM.timeScale;
     if (UI.speedOut) UI.speedOut.textContent = fmt.speed(SIM.timeScale);
@@ -102,48 +97,39 @@ function syncUI() {
     paintPaused();
 }
 
-// ——— отправка на сервер/в мир (замени на свои протоколы при необходимости) ———
 function sendControl(cmd, value) {
-    // пример через сокет; подменишь под свой API
     socket.send({type: 'control', cmd: cmd, value: value});
 }
 
-// ——— публичные сеттеры (меняют состояние + перерисовывают + шлют команду) ———
 function setPaused(p) {
     SIM.paused = !!p;
     paintPaused();
-    // стоп/старт рендера
     sendControl(SIM.paused ? 'pause' : 'resume', '');
 }
 
 function setSpeed(mult) {
     SIM.timeScale = Number(mult);
     paintSpeed();
-    world.setTimeScale?.(SIM.timeScale);
     sendControl('speed', SIM.timeScale);
 }
 
 function setDensity(val) {
     SIM.density = Number(val);
     paintDensity();
-    world.setDensity?.(SIM.density);
     sendControl('density', SIM.density);
 }
 
 function setTrafficMode(mode) {
     SIM.tlMode = String(mode);
     paintMode();
-    world.setTrafficMode?.(SIM.tlMode);
     sendControl('trafficMode', SIM.tlMode);
 }
 
-// ——— связь с HUD-событиями из разметки ———
 window.addEventListener('sim:setPaused', e => setPaused(!!e.detail));
 window.addEventListener('sim:setSpeed', e => setSpeed(+e.detail));
 window.addEventListener('sim:setDensity', e => setDensity(+e.detail));
 window.addEventListener('sim:setTrafficMode', e => setTrafficMode(String(e.detail)));
 
-// ——— прямые биндинги UI → состояние (если хочешь без кастомных событий) ———
 UI.speed?.addEventListener('input', e => setSpeed(e.target.value));
 UI.density?.addEventListener('input', e => setDensity(e.target.value));
 UI.tlRadios.forEach(r => r.addEventListener('change', e => {
@@ -159,7 +145,6 @@ window.addEventListener('keydown', (e) => {
 
 });
 
-// ——— инициализация: прорисовать текущие значения ———
 syncUI();
 
 // ===== (опционально) если сервер шлёт состояние — применяем и перерисовываем ===
@@ -170,43 +155,39 @@ function applyServerState(patch) {
     if ('density' in patch) SIM.density = Number(patch.density);
     if ('trafficMode' in patch) SIM.tlMode = String(patch.trafficMode);
     syncUI();
-    // и дернуть локальные методы мира, если надо:
-    world.setTimeScale?.(SIM.timeScale);
-    world.setDensity?.(SIM.density);
-    world.setTrafficMode?.(SIM.tlMode);
 }
 
 // ==== HUD counters wiring (добавь в main.js рядом с блоком HUD UI SYNC) ====
 
 const StatsUI = {
-  carsInEl: document.getElementById('carsIn'),
-  carsOutEl: document.getElementById('carsOut'),
-  // если позже захочешь — sec/avgLife тоже можно обновлять тут
+    carsInEl: document.getElementById('carsIn'),
+    carsOutEl: document.getElementById('carsOut'),
+    // если позже захочешь — sec/avgLife тоже можно обновлять тут
 };
 
 const Stats = {
-  carsIn: Number(StatsUI.carsInEl?.textContent || 0),
-  carsOut: Number(StatsUI.carsOutEl?.textContent || 0),
+    carsIn: Number(StatsUI.carsInEl?.textContent || 0),
+    carsOut: Number(StatsUI.carsOutEl?.textContent || 0),
 };
 
 function paintStats() {
-  if (StatsUI.carsInEl)  StatsUI.carsInEl.textContent  = String(Stats.carsIn);
-  if (StatsUI.carsOutEl) StatsUI.carsOutEl.textContent = String(Stats.carsOut);
+    if (StatsUI.carsInEl) StatsUI.carsInEl.textContent = String(Stats.carsIn);
+    if (StatsUI.carsOutEl) StatsUI.carsOutEl.textContent = String(Stats.carsOut);
 }
 
 // подписки на события World
 world.addEventListener('car:created', () => {
-  Stats.carsIn += 1;
-  paintStats();
+    Stats.carsIn += 1;
+    paintStats();
 });
 
 world.addEventListener('car:deleted', (e) => {
-  Stats.carsOut += 1;
-  paintStats();
+    Stats.carsOut += 1;
+    paintStats();
 
-  // если когда-нибудь понадобится средняя «жизнь»:
-  // const { lifeMs } = e.detail || {};
-  // ... накапливай и обновляй #avgLife ...
+    // если когда-нибудь понадобится средняя «жизнь»:
+    // const { lifeMs } = e.detail || {};
+    // ... накапливай и обновляй #avgLife ...
 });
 
 paintStats();
