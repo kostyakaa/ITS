@@ -16,8 +16,8 @@ export function createRenderer(canvas) {
     renderer.outputEncoding = THREE.sRGBEncoding;
   }
 
-  renderer.toneMapping = THREE.NeutralToneMapping;
-  renderer.toneMappingExposure = 1.3;
+  renderer.toneMapping = THREE.CineonToneMapping;
+  renderer.toneMappingExposure = 1.4;
 
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -53,7 +53,7 @@ export function addLights(scene) {
 
   const sun = new THREE.DirectionalLight(0xffffff, 0.9);
 
-  sun.position.set(20, 10, 20);
+  sun.position.set(100, 100, 100);
 
   sun.target.position.set(0, 0, 0);
 
