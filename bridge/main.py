@@ -4,10 +4,20 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import asyncio
+import logging
+import sys
 import os
 
 from .models import SessionManager, Session
 from config import BIN_PATH
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+logger = logging.getLogger("app")
 
 app = FastAPI()
 manager = SessionManager()
@@ -43,6 +53,7 @@ async def websocket_endpoint(ws: WebSocket):
 
         session = await manager.create(ws, cmd=[str(BIN_PATH)])
         await ws.send_json({"type": "created", "session_id": session.session_id})
+        logger.info("Simulation process started")
 
         await asyncio.wait(
             [session.stdin_pump_task, session.read_stdout_task, session.batch_sender_task],
