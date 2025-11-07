@@ -1,11 +1,13 @@
 @import url("https://fonts.googleapis.com/css?family=Press+Start+2P");
 
+/* ========== Base ========== */
 body {
     margin: 0;
     display: flex;
     font-family: "Press Start 2P", cursive;
 }
 
+/* ========== Controls, Score, Result ========== */
 #controls {
     position: absolute;
     bottom: 20px;
@@ -26,13 +28,13 @@ body {
     height: 40px;
     background-color: white;
     border: 1px solid lightgray;
-    box-shadow: 3px 5px 0px 0px rgba(0, 0, 0, 0.75);
+    box-shadow: 3px 5px 0 0 rgba(0, 0, 0, 0.75);
     cursor: pointer;
     outline: none;
 }
 
 #controls button:first-of-type {
-    grid-column: 1/-1;
+    grid-column: 1 / -1;
 }
 
 #score {
@@ -46,38 +48,35 @@ body {
 
 #result-container {
     position: absolute;
-    min-width: 100%;
-    min-height: 100%;
-    top: 0;
+    inset: 0 0 0 0;
     display: flex;
     align-items: center;
     justify-content: center;
     visibility: hidden;
-
-    #result {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        background-color: white;
-        padding: 20px;
-    }
-
-    button {
-        background-color: red;
-        padding: 20px 50px 20px 50px;
-        font-family: inherit;
-        font-size: inherit;
-        cursor: pointer;
-    }
+    min-width: 100%;
+    min-height: 100%;
 }
 
+#result-container #result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: white;
+    padding: 20px;
+}
 
+#result-container button {
+    background-color: red;
+    padding: 20px 50px;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+/* ========== Loader ========== */
 #loader {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -104,6 +103,7 @@ body {
     }
 }
 
+/* ========== HUD Vars ========== */
 :root {
     --hud-bg: rgba(15, 18, 26, .62);
     --hud-border: rgba(255, 255, 255, .12);
@@ -114,16 +114,15 @@ body {
     --hud-text-size: clamp(12px, 1.4vw, 16px);
 }
 
-/* HUD контейнер поверх игры */
+/* ========== HUD Layout ========== */
 .hud {
     position: fixed;
     inset: 0;
     z-index: 1000;
-    pointer-events: none; /* клики проходят к canvas */
+    pointer-events: none;
     font-family: "Press Start 2P", cursive;
 }
 
-/* Базовая панель */
 .panel {
     position: fixed;
     width: min(520px, 42vw);
@@ -135,10 +134,9 @@ body {
     overflow: hidden;
     backdrop-filter: blur(8px) saturate(120%);
     -webkit-backdrop-filter: blur(8px) saturate(120%);
-    pointer-events: auto; /* панель кликабельна */
+    pointer-events: auto;
 }
 
-/* Позиции, как на скрине */
 .panel--settings {
     left: 12px;
     top: 12px;
@@ -151,8 +149,9 @@ body {
     width: min(520px, 46vw);
 }
 
-/* Заголовок */
+/* Header */
 .panel__header {
+    position: relative; /* для ::after */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -164,19 +163,17 @@ body {
     font-size: var(--hud-header-size);
 }
 
-/* внутренняя разделительная линия под заголовком (как в рефе) */
 .panel__header::after {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
-    height: 2px;
     bottom: 0;
+    height: 2px;
     background: linear-gradient(90deg, var(--hud-line), transparent 60%),
     linear-gradient(0deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0));
 }
 
-/* заголовок + иконки */
 .panel__title {
     letter-spacing: 1px;
 }
@@ -206,15 +203,14 @@ body {
     transition: transform .2s ease;
 }
 
-/* Состояние стрелки при закрытии */
 .panel:not([open]) .chevron {
     transform: rotate(-135deg);
 }
 
-/* Тело панели — плавное выпадающее открытие */
+/* Body */
 .panel__body {
     overflow: hidden;
-    max-height: 70vh; /* максимальная высота при open */
+    max-height: 70vh;
     transition: max-height .25s ease;
     padding: 12px 16px 16px;
     font-size: var(--hud-text-size);
@@ -225,14 +221,13 @@ body {
     margin-bottom: 20px;
 }
 
-
 .panel:not([open]) .panel__body {
     max-height: 0;
     padding-top: 0;
     padding-bottom: 0;
 }
 
-/* Ряды настроек */
+/* Rows */
 .row {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -250,7 +245,7 @@ body {
     accent-color: #4ade80;
 }
 
-/* Статистика */
+/* Stats */
 .panel__body--stats {
     padding-top: 10px;
 }
@@ -275,7 +270,7 @@ body {
     font-weight: 700;
 }
 
-/* Мелкая адаптация под мобильные */
+/* Mobile tweaks */
 @media (max-width: 740px) {
     .panel {
         width: 92vw;
@@ -298,24 +293,24 @@ body {
     }
 }
 
+/* Stack layout */
 .hud-stack {
     position: fixed;
     top: 12px;
     left: 12px;
     display: grid;
     gap: 12px;
-    pointer-events: none; /* клики проходят мимо контейнера */
-    --hud-scale: .6; /* 0.7–0.95 подбирай на вкус */
+    pointer-events: none;
+    --hud-scale: .6;
     transform: scale(var(--hud-scale));
     transform-origin: top left;
 }
 
 .hud-stack .panel {
-    position: static; /* панели идут одна под другой */
-    pointer-events: auto; /* сами панели кликабельны */
+    position: static;
+    pointer-events: auto;
 }
 
-/* Сброс старых якорей, чтобы не липло к низу */
 .hud-stack .panel--settings,
 .hud-stack .panel--stats {
     left: auto;
@@ -323,9 +318,7 @@ body {
     bottom: auto;
 }
 
-/* Можешь удалить из старого CSS правило: */
-/* .panel--stats{ bottom: 12px; } */
-/* ----- числовое отображение у range ----- */
+/* Range with output */
 .row--range {
     grid-template-columns: 1fr minmax(180px, 260px) auto;
 }
@@ -340,7 +333,7 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* ----- плавающая кнопка Пауза (play/pause) ----- */
+/* FABs */
 .fab {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 8px);
@@ -378,7 +371,17 @@ body {
     display: block;
 }
 
-/* ----- режим светофора — кружочки ----- */
+.fab--restart {
+    top: calc(env(safe-area-inset-top, 0px) + 60px);
+    right: calc(env(safe-area-inset-right, 0px) + 8px);
+}
+
+.fab .i-restart {
+    width: 24px;
+    height: 24px;
+}
+
+/* Modes (traffic-light dots) */
 .row--modes {
     grid-template-columns: auto auto auto;
     gap: 10px 12px;
@@ -387,8 +390,8 @@ body {
 
 .row--modes legend {
     grid-column: 1 / -1;
-    padding: 0;
     margin: 0 0 2px 0;
+    padding: 0;
     font-size: var(--hud-text-size);
 }
 
@@ -419,11 +422,11 @@ body {
 
 .mode input:checked + .dot {
     background: rgba(255, 255, 255, .16);
-    box-shadow: inset 0 0 0 6px rgba(74, 222, 128, .55); /* зелёная «заливка» */
+    box-shadow: inset 0 0 0 6px rgba(74, 222, 128, .55);
     border-color: rgba(255, 255, 255, .35);
 }
 
-/* адаптация: на маленьких экранах кнопку чуть меньше */
+/* Small screens */
 @media (max-width: 740px) {
     .fab {
         width: 42px;
@@ -438,19 +441,18 @@ body {
     }
 }
 
-/* сбрасываем сетку .row для этого блока — делаем обычный столбик */
+/* Radio list */
 .row--radioList {
     display: block;
+    margin-top: 8px;
     padding: 0;
     border: none;
-    margin-top: 8px;
 }
 
 .row--radioList legend {
     margin: 0 0 6px 0;
 }
 
-/* элемент списка */
 .radio {
     display: flex;
     align-items: center;
@@ -468,18 +470,16 @@ body {
     pointer-events: none;
 }
 
-/* сам кружок */
 .radio__dot {
     width: 20px;
     height: 20px;
     border-radius: 50%;
     border: 2px solid rgba(255, 255, 255, .35);
     background: rgba(255, 255, 255, .06);
-    box-shadow: inset 0 0 0 0 rgba(74, 222, 128, .7); /* пустой по умолчанию */
+    box-shadow: inset 0 0 0 0 rgba(74, 222, 128, .7);
     transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
 }
 
-/* «горит», когда выбрано */
 .radio input:checked + .radio__dot {
     box-shadow: inset 0 0 0 7px rgba(74, 222, 128, .7);
     border-color: rgba(255, 255, 255, .75);
@@ -490,7 +490,7 @@ body {
     opacity: .95;
 }
 
-/* ----- Панель камеры ----- */
+/* ========== Camera Panel (deduped) ========== */
 .panel--camera {
     width: min(520px, 46vw);
 }
@@ -499,9 +499,9 @@ body {
     padding-top: 10px;
 }
 
-/* select в стиле HUD */
+/* Select (final version) */
 .row select {
-    padding: 7px 10px 6px;
+    padding: 4px 8px;
     min-width: 180px;
     border-radius: 8px;
     border: 1px solid var(--hud-border);
@@ -512,12 +512,60 @@ body {
     outline: none;
 }
 
-/* чекбокс «Постоянное движение» */
-.row--checkbox {
-    grid-template-columns: 1fr auto;
+/* Hidden rows controlled by JS */
+#camManualRow, #camSpeedRow, #camContinuousRow {
+    display: none;
 }
 
-/* превью траекторий */
+/* Cam toggle (final, dark variant) */
+#camContinuous {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, .9);
+    border: 1px solid rgba(148, 163, 253, .55);
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 0 4px rgba(15, 23, 42, 1);
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+#camContinuous::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(148, 163, 253, 1);
+    box-shadow: 0 0 4px rgba(79, 70, 229, .9);
+    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+#camContinuous:checked {
+    background: rgba(22, 163, 74, .25);
+    border-color: rgba(74, 222, 128, .9);
+    box-shadow: 0 0 10px rgba(22, 163, 74, .5);
+}
+
+#camContinuous:checked::after {
+    transform: translateX(14px);
+    background: #bbf7d0;
+    box-shadow: 0 0 6px rgba(22, 163, 74, .9);
+}
+
+/* Cam path select bigger */
+#camPath {
+    padding: 8px 14px 7px;
+    min-height: 34px;
+    line-height: 1.4;
+}
+
+/* Cam preview */
 .cam-preview {
     display: none;
     justify-content: center;
@@ -551,7 +599,6 @@ body {
     stroke: rgba(56, 189, 248, .9);
 }
 
-/* Подсветка активной траектории */
 .cam-preview[data-path="xyOrbit"] .path--xy {
     opacity: 1;
     stroke-width: 2.2;
@@ -566,194 +613,445 @@ body {
     opacity: .08;
 }
 
-/* по умолчанию слайдеры камеры скрыты — логика в JS */
-#camManualRow,
-#camSpeedRow {
-    display: none;
+/* ========== Tilt-Shift Overlay ========== */
+#tiltShiftOverlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 950;
 }
 
-/* ----- Панель камеры ----- */
-.panel--camera {
-    width: min(520px, 46vw);
+#tiltShiftOverlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(var(--ts-blur, 8px));
+    -webkit-backdrop-filter: blur(var(--ts-blur, 8px));
+    opacity: var(--ts-opacity, 1);
+    mask-image: var(--ts-mask, radial-gradient(circle at 50% 55%, transparent 38%, black 60%));
+    transform: rotate(var(--ts-angle, 0deg));
+    transform-origin: center;
 }
 
-.panel__body--camera {
-    padding-top: 10px;
+#tiltShiftOverlay[data-mode="corners"]::before {
+    mask-image: radial-gradient(
+            ellipse at var(--ts-cx, 50%) var(--ts-cy, 55%),
+            transparent var(--ts-band, 38%),
+            black calc(var(--ts-band, 38%) + var(--ts-falloff, 18%))
+    );
 }
 
-/* select */
-.row select {
-    padding: 4px 8px;
-    min-width: 180px;
-    border-radius: 8px;
+#tiltShiftOverlay[data-mode="band"]::before {
+    mask-image: linear-gradient(
+            to bottom,
+            black 0%,
+            transparent var(--ts-bandStart, 40%),
+            transparent var(--ts-bandEnd, 60%),
+            black 100%
+    );
+}
+
+/* ========== Start Menu (base) ========== */
+.menu {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+.menu.is-open {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.menu__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(6, 10, 18, .35);
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+}
+
+.menu__content {
+    position: relative;
+    width: min(720px, 92vw);
+    padding: clamp(18px, 4vw, 28px);
+    border-radius: 16px;
     border: 1px solid var(--hud-border);
-    background: rgba(0, 0, 0, 0.26);
+    background: rgba(17, 23, 41, .72);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
     color: #fff;
-    font-family: inherit;
-    font-size: var(--hud-text-size);
-    outline: none;
+    text-align: center;
+    transform: translateY(6px) scale(.985);
+    opacity: 0;
+    animation: menuIn .22s ease forwards;
 }
 
-.row--checkbox {
-    grid-template-columns: 1fr auto;
+@keyframes menuIn {
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
 }
 
-
-
-
-/* по умолчанию слайдеры скрыты — управляем из JS */
-#camManualRow,
-#camSpeedRow,
-#camContinuousRow {
-    display: none;
+.menu__title {
+    margin: 0 0 18px 0;
+    font-size: clamp(24px, 4vw, 38px);
+    letter-spacing: .5px;
 }
 
-/* Красивый тумблер только для чекбокса камеры */
-#camContinuous {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 34px;
-    height: 18px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .10);
+.menu__buttons {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 16px;
+    margin: 8px 0 12px;
+}
+
+.menu .i {
+    width: 26px;
+    height: 26px;
+    fill: currentColor;
+    opacity: .95;
+}
+
+.btn {
+    display: inline-grid;
+    place-items: center;
+    gap: 8px;
+    padding: 12px 18px;
+    min-height: 44px;
+    border-radius: 12px;
     border: 1px solid var(--hud-border);
-    position: relative;
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    font: inherit;
     cursor: pointer;
-    outline: none;
-    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+    transition: transform .06s ease, background .16s ease, border-color .16s ease;
 }
 
-#camContinuous::after {
+.btn:hover {
+    background: rgba(255, 255, 255, .12);
+    border-color: rgba(255, 255, 255, .28);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn--primary {
+    min-width: 180px;
+    font-size: clamp(14px, 1.8vw, 18px);
+    background: linear-gradient(180deg, rgba(74, 222, 128, .7), rgba(34, 197, 94, .55));
+    border-color: rgba(255, 255, 255, .35);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .15);
+}
+
+.btn--icon {
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    background: rgba(255, 255, 255, .10);
+    border-radius: 14px;
+}
+
+.btn--ghost {
+    background: transparent;
+}
+
+.menu__info {
+    text-align: left;
+    margin: 8px auto 6px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--hud-border);
+    background: rgba(255, 255, 255, .06);
+    line-height: 1.6;
+}
+
+.menu__made {
+    margin: 14px 0 0;
+    font-size: clamp(11px, 1.4vw, 13px);
+    opacity: .85;
+    white-space: nowrap;
+}
+
+/* ========== Start Menu — Minimal tweaks (authoritative) ========== */
+.menu__content {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: clamp(20px, 6vh, 36px) 0 !important;
+    min-height: 100vh !important;
+}
+
+.menu__backdrop {
+    background: rgba(6, 10, 18, .22) !important;
+    backdrop-filter: blur(12px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(120%) !important;
+}
+
+.menu__title {
+    margin: 0 0 22px 0 !important;
+    font-size: clamp(28px, 5vw, 44px) !important;
+    letter-spacing: .02em !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, .25) !important;
+    transform: translateY(-15%) !important; /* сохранено из финального вида */
+}
+
+.menu__buttons {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(72px, 1fr)) !important;
+    justify-items: center !important;
+    align-items: center !important;
+    gap: clamp(12px, 3vw, 28px) !important;
+    margin-bottom: 10px !important;
+}
+
+.menu .btn {
+    padding: 12px 18px !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, .22) !important;
+    background: rgba(255, 255, 255, .06) !important;
+    box-shadow: none !important;
+    transition: transform .06s ease, background .16s ease, border-color .16s ease !important;
+}
+
+.menu .btn:hover {
+    background: rgba(255, 255, 255, .12) !important;
+    border-color: rgba(255, 255, 255, .32) !important;
+}
+
+.menu .btn:active {
+    transform: translateY(1px) !important;
+}
+
+.menu .btn--icon {
+    width: 56px !important;
+    height: 56px !important;
+    display: grid !important;
+    place-items: center !important;
+    border-radius: 14px !important;
+}
+
+.menu .btn--icon .i {
+    width: 26px !important;
+    height: 26px !important;
+    display: block !important;
+    margin: 0 !important;
+}
+
+.menu .btn--start {
+    padding: 14px 28px !important;
+    min-width: 220px !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255, 255, 255, .28) !important;
+    background: rgba(255, 255, 255, .10) !important;
+    font-size: clamp(14px, 1.8vw, 18px) !important;
+    letter-spacing: .02em !important;
+}
+
+.menu .btn--start:hover {
+    background: rgba(255, 255, 255, .16) !important;
+}
+
+.menu .btn--start:active {
+    transform: translateY(1px) !important;
+}
+
+.menu__made {
+    position: absolute;
+    bottom: 6vw;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    font-size: clamp(11px, 1.4vw, 13px);
+    opacity: 1;
+}
+
+.menu__made a {
+    color: #4ade80;
+    text-decoration: none;
+    transition: color .2s;
+}
+
+.menu__made a:hover {
+    color: #86efac;
+}
+
+/* Bare menu container option */
+.menu.menu--bare .menu__content {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: clamp(12px, 3vw, 18px);
+}
+
+/* ========== Connection Lost Overlay ========== */
+.net {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+.net:not(.is-hidden) {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.net__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 10, 16, .55);
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+}
+
+.net__content {
+    position: relative;
+    width: min(560px, 90vw);
+    padding: 18px 18px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--hud-border);
+    background: rgba(20, 24, 38, .9);
+    color: #fff;
+    box-shadow: 0 18px 46px rgba(0, 0, 0, .6);
+    transform: translateY(4px);
+    animation: netIn .2s ease forwards;
+}
+
+@keyframes netIn {
+    to {
+        transform: translateY(0);
+    }
+}
+
+.net__head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.i-warn {
+    width: 26px;
+    height: 26px;
+    fill: #fbbf24;
+}
+
+.net__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+/* ========== Pixel Buttons (independent) ========== */
+.pbtn {
+    --px: 4px;
+    --bg: #69d1ff;
+    --border: #ffffff;
+    --shadow: #1e40af;
+    --inner: rgba(255, 255, 255, .35);
+    position: relative;
+    border: 0;
+    border-radius: 0;
+    background: var(--bg);
+    color: #0f172a;
+    font: inherit;
+    padding: 12px 22px;
+    min-height: 48px;
+    cursor: pointer;
+    image-rendering: pixelated;
+    box-shadow: 0 var(--px) 0 0 var(--shadow),
+    0 0 0 var(--px) var(--border) inset;
+    transition: transform .05s ease, box-shadow .05s ease, filter .12s ease;
+}
+
+.pbtn:hover {
+    filter: brightness(1.05);
+}
+
+.pbtn:active {
+    transform: translateY(var(--px));
+    box-shadow: 0 0 0 0 var(--shadow),
+    0 0 0 var(--px) var(--border) inset;
+}
+
+.pbtn::before {
     content: "";
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    background: rgba(148, 163, 253, 1);
-    box-shadow: 0 0 4px rgba(129, 140, 248, .9);
-    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+    inset: 0;
+    background: linear-gradient(var(--border), var(--border)) top left / var(--px) var(--px),
+    linear-gradient(var(--border), var(--border)) top right/ var(--px) var(--px),
+    linear-gradient(var(--border), var(--border)) bottom left/ var(--px) var(--px),
+    linear-gradient(var(--border), var(--border)) bottom right/var(--px) var(--px);
+    background-repeat: no-repeat;
+    pointer-events: none;
 }
 
-#camContinuous:checked {
-    background: rgba(74, 222, 128, .35);
-    border-color: rgba(74, 222, 128, .9);
-    box-shadow: 0 0 10px rgba(22, 163, 74, .7);
+.pbtn--start {
+    --bg: #34d399;
+    --shadow: #065f46;
+    color: #062e26;
+    padding: 14px 28px;
+    font-size: clamp(14px, 1.8vw, 20px);
 }
 
-#camContinuous:checked::after {
-    transform: translateX(14px);
-    background: #bbf7d0;
-    box-shadow: 0 0 6px rgba(22, 163, 74, .9);
+.pbtn--icon {
+    width: 64px;
+    height: 56px;
+    padding: 0;
 }
 
-/* Камера: селект повыше, текст влезает */
-#camPath {
-    padding: 8px 14px 7px;
-    min-height: 34px;
-    line-height: 1.4;
+.menu__buttons .pbtn--icon {
+    display: grid;
+    place-items: center;
 }
 
-.fab--pause {
-    /* остаётся на дефолтном месте */
+.menu__buttons .pbtn--icon .i {
+    width: 28px;
+    height: 28px;
+    display: block;
 }
 
-.fab--restart {
-    top: calc(env(safe-area-inset-top, 0px) + 60px); /* ниже паузы */
-    right: calc(env(safe-area-inset-right, 0px) + 8px);
+@media (max-width: 740px) {
+    .pbtn--icon {
+        width: 56px;
+        height: 48px;
+    }
+
+    .pbtn--start {
+        font-size: 14px;
+        padding: 12px 22px;
+    }
 }
 
-.fab .i-restart {
-    width: 24px;
-    height: 24px;
+#startMenu .menu__content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100svh !important; /* лучше чем 100vh на мобилках */
 }
 
-/* Тумблер постоянного движения камеры */
-#camContinuous {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 34px;
-    height: 18px;
-    border-radius: 999px;
-    background: rgba(15, 23, 42, .9);              /* тёмный, как панель */
-    border: 1px solid rgba(148, 163, 253, .55);    /* мягкий индиго */
-    position: relative;
-    cursor: pointer;
-    outline: none;
-    box-shadow: 0 0 4px rgba(15, 23, 42, 1);
-    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+/* Блок кнопок встанет в геометрический центр экрана */
+#startMenu .menu__buttons {
+    margin: 150px; /* толкаем вниз и вверх поровну */
+    justify-content: center; /* на всякий случай по оси X */
+    justify-items: center;
 }
 
-#camContinuous::after {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    background: rgba(148, 163, 253, 1);           /* индиго, под общую палитру */
-    box-shadow: 0 0 4px rgba(79, 70, 229, .9);
-    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
-}
-
-#camContinuous:checked {
-    background: rgba(22, 163, 74, .25);           /* зелёный, как highlight в UI */
-    border-color: rgba(74, 222, 128, .9);
-    box-shadow: 0 0 10px rgba(22, 163, 74, .5);
-}
-
-#camContinuous:checked::after {
-    transform: translateX(14px);
-    background: #bbf7d0;                          /* светло-зелёный шарик */
-    box-shadow: 0 0 6px rgba(22, 163, 74, .9);
-}
-
-/* ==== Tilt-Shift overlay (экранный блюр с маской) ========================= */
-#tiltShiftOverlay{
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 950; /* ниже HUD (1000), выше канваса */
-}
-
-/* базовый слой блюра; управляется CSS-переменными */
-#tiltShiftOverlay::before{
-  content: "";
-  position: absolute; inset: 0;
-
-  /* сам размытие фона */
-  backdrop-filter: blur(var(--ts-blur, 8px));
-  -webkit-backdrop-filter: blur(var(--ts-blur, 8px));
-
-  /* прозрачность всего эффекта */
-  opacity: var(--ts-opacity, 1);
-
-  /* маска задаёт «где видно блюр» — подменяем в режимах ниже */
-  mask-image: var(--ts-mask, radial-gradient(circle at 50% 55%, transparent 38%, black 60%));
-
-  /* для полосы можно вращать весь слой */
-  transform: rotate(var(--ts-angle, 0deg));
-  transform-origin: center;
-}
-
-/* Режим 1: размытые края/уголки (резкий центр эллипса) */
-#tiltShiftOverlay[data-mode="corners"]::before{
-  mask-image: radial-gradient(
-    ellipse at var(--ts-cx, 50%) var(--ts-cy, 55%),
-    transparent var(--ts-band, 38%),
-    black calc(var(--ts-band, 38%) + var(--ts-falloff, 18%))
-  );
-}
-
-/* Режим 2: классический tilt-shift — резкая полоса, остальное размыто */
-#tiltShiftOverlay[data-mode="band"]::before{
-  mask-image: linear-gradient(
-    to bottom,
-    black 0%,
-    transparent var(--ts-bandStart, 40%),
-    transparent var(--ts-bandEnd, 60%),
-    black 100%
-  );
+/* Чтобы заголовок не «подпрыгивал» и не смещал центр */
+#startMenu .menu__title {
+    transform: none !important;
+    margin-bottom: 16px !important;
 }

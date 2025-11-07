@@ -26,7 +26,6 @@ world.attachRenderer?.(renderer);
 scene.add(world.group);
 
 const socket = new SimSocket(world);
-socket.connect();
 
 window.API = world.server;
 window.WORLD = world;
@@ -473,4 +472,95 @@ function applyServerState(patch) {
     });
 
     window.TiltShift = {set, overlay};
+})();
+
+// ========================= Start Menu =========================
+(function installStartMenu() {
+    const startMenu = document.getElementById('startMenu');
+    const btnStart = document.getElementById('btnStart');
+    const btnInfo = document.getElementById('btnInfo');
+    const infoBox = document.getElementById('infoBox');
+    const madeBy = document.getElementById('madeBy');
+
+    // настрой «подпись» здесь
+    const MADE_BY = '…'; // впиши своё имя/ник, например 'Misha' или '@yourhandle'
+    if (madeBy) madeBy.textContent = MADE_BY;
+
+    function openMenu() {
+        startMenu?.classList.add('is-open');
+        startMenu?.setAttribute('aria-hidden', 'false');
+        // мягкий блюр можно усилить tilt-shift, если хочешь:
+        // window.TiltShift?.set({ opacity: 1, blurPx: 6 });
+    }
+
+    function closeMenu() {
+        if (!socket.socket) {
+            socket.connect();
+        }
+        startMenu?.classList.remove('is-open');
+        startMenu?.setAttribute('aria-hidden', 'true');
+        // window.TiltShift?.set({ opacity: 0 });
+    }
+
+    btnStart?.addEventListener('click', () => {
+        closeMenu();
+        // По желанию – снять паузу:
+        // setPaused(false);
+    });
+
+    btnInfo?.addEventListener('click', () => {
+        const isHidden = infoBox?.hasAttribute('hidden');
+        if (!infoBox) return;
+        if (isHidden) {
+            infoBox.removeAttribute('hidden');
+            btnInfo?.setAttribute('aria-expanded', 'true');
+        } else {
+            infoBox.setAttribute('hidden', '');
+            btnInfo?.setAttribute('aria-expanded', 'false');
+        }
+    });
+
+    // ESC — можно вернуть стартовое меню (удобно на демо-стендах)
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Escape') openMenu();
+    });
+
+    // меню открыто по умолчанию (класс is-open уже стоит в HTML)
+})();
+
+// ===================== Connection Overlay =====================
+(function installNetOverlay() {
+    const net = document.getElementById('netOverlay');
+    const msg = document.getElementById('netMsg');
+    const btnRetry = document.getElementById('netRetry');
+    const btnHide = document.getElementById('netDismiss');
+
+    function showNetOverlay(text) {
+        if (msg && text) msg.textContent = text;
+        net?.classList.remove('is-hidden');
+        net?.setAttribute('aria-hidden', 'false');
+    }
+
+    function hideNetOverlay() {
+        net?.classList.add('is-hidden');
+        net?.setAttribute('aria-hidden', 'true');
+    }
+
+    document.addEventListener('ws:open', () => hideNetOverlay());
+    document.addEventListener('ws:closed', (e) => {
+        showNetOverlay(`Соединение прервано`);
+    });
+    document.addEventListener('ws:error', () => {
+        showNetOverlay('Ошибка соединения.');
+    });
+
+    btnRetry?.addEventListener('click', () => {
+        socket?.connect(true);
+        world.server.resetCars();
+    });
+    btnHide?.addEventListener('click', hideNetOverlay);
+
+    if (socket.socket.readyState !== WebSocket.OPEN) {
+        showNetOverlay('Подключение');
+    }
 })();

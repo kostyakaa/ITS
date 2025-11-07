@@ -7,6 +7,60 @@
     <link href="/style.css" rel="stylesheet">
 </head>
 <body>
+<!-- ===== Start Menu Overlay ===== -->
+<div id="startMenu" class="menu is-open" aria-hidden="false">
+    <div class="menu__backdrop"></div>
+    <div class="menu__content" role="dialog" aria-modal="true" aria-label="Стартовое меню">
+        <h1 class="menu__title">Traffic&nbsp;Sim</h1>
+
+        <div class="menu__buttons">
+            <a id="btnGit" class="pbtn pbtn--icon" href="https://github.com/your/repo" target="_blank" rel="noopener"
+               title="GitHub" aria-label="GitHub">
+                <svg viewBox="0 0 24 24" class="i">
+                    <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.5v-2c-3.3.7-4-1.6-4-1.6-.5-1.2-1.3-1.6-1.3-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 1.7 2.7 1.2 3.4.9.1-.8.4-1.2.7-1.5-2.7-.3-5.5-1.4-5.5-6.2 0-1.4.5-2.6 1.2-3.5 0-.3-.5-1.6.1-3.3 0 0 1-.3 3.5 1.3 1-.3 2-.4 3-.4s2 .1 3 .4c2.5-1.6 3.5-1.3 3.5-1.3.6 1.7.2 3 .1 3.3.8.9 1.2 2.1 1.2 3.5 0 4.8-2.8 5.9-5.5 6.2.4.3.7.9.7 1.9v2.8c0 .3.2.6.8.5A12 12 0 0 0 12 .5z"/>
+                </svg>
+            </a>
+
+            <button id="btnStart" class="pbtn pbtn--start">Старт</button>
+
+            <button id="btnInfo" class="pbtn pbtn--icon" title="О проекте" aria-expanded="false"
+                    aria-controls="infoBox">
+                <svg viewBox="0 0 24 24" class="i">
+                    <path d="M11 10h2v7h-2v-7zm0-4h2v2h-2V6zM12 2a10 10 0 100 20 10 10 0 000-20z"/>
+                </svg>
+            </button>
+        </div>
+
+
+        <div id="infoBox" class="menu__info" hidden>
+            <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Accusamus cupiditate eligendi tempora. Aut
+                consequuntur deserunt dignissimos earum, hic libero nemo reiciendis suscipit voluptas! A magni molestiae
+                officia tenetur veniam? Aspernatur.</p>
+        </div>
+
+        <p class="menu__made">Made by <a href="https://kostyaka.t.me" target="_blank">@kostyaka</a> and <a
+                href="https://davsf.t.me" target="_blank">@davsf</a></span></p>
+    </div>
+</div>
+
+<!-- ===== Connection Lost Overlay ===== -->
+<div id="netOverlay" class="net is-hidden" aria-hidden="true">
+    <div class="net__backdrop"></div>
+    <div class="net__content" role="dialog" aria-modal="true" aria-live="assertive" aria-label="Сетевой статус">
+        <div class="net__head">
+            <svg class="i i-warn" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            <h2>Потеряно соединение</h2>
+        </div>
+        <p id="netMsg">Переподключаюсь…</p>
+        <div class="net__actions">
+            <button id="netRetry" class="btn">Переподключить</button>
+            <button id="netDismiss" class="btn btn--ghost">Скрыть</button>
+        </div>
+    </div>
+</div>
+
 <div id="loader">
     <div class="spinner"></div>
     <p>Загрузка...</p>
@@ -130,7 +184,6 @@
                         <option value="xyzOrbit">Орбита XYZ</option>
                     </select>
                 </label>
-
 
 
                 <!-- чекбокс "постоянное движение" -->
