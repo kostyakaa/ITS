@@ -21,6 +21,7 @@ Vehicle Vehicle::randomVehicle(int from, RouteTracker rt) {
     DriverProfile dp{};
     VehicleParams vp{};
     dp.laneChangeDuration = 2;
+    vp.minGap = 2;
     return {vp, dp, from, 0, 0, std::move(rt)};
 }
 
