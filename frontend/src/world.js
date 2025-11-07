@@ -321,6 +321,10 @@ export class World extends EventTarget {
         this._curbsInner = null;
         this._sidewalks = null;
 
+        this.simTime = 0;
+        this._carBirth = new Map();
+        this._lifeStats = {total: 0, count: 0, avg: 0};
+
         this.server = {
             init: (payload = {}) => this._apiInit(payload),
             update: (changes = {}) => this._apiUpdate(changes),
@@ -330,7 +334,10 @@ export class World extends EventTarget {
             setTrafficLightColor: (id, color) => this._setTrafficLightColor(id, color),
             moveCar: (id, pose = {}) => this._moveCar(id, pose),
             deleteCar: (id) => this._deleteCar(id),
-            resetCars: () => {this._resetCars()}
+            resetCars: () => {
+                this._resetCars()
+            },
+            setTime: (t) => this._setSimTime(t),
         };
 
         // строим синхронно то, что можем сразу, а дорогу грузим асинхронно
@@ -541,7 +548,10 @@ export class World extends EventTarget {
         }
         const yaw = normAngle(rot) ?? 0;
         obj.setPosition(x, y, z).setRotationZ(yaw);
-        if (isNew) this._emit('car:created', {id});
+        if (isNew) {
+            this._carBirth.set(id, this.simTime);
+            this._emit('car:created', {id, time: this.simTime});
+        }
 
         return obj;
     }
@@ -554,9 +564,30 @@ export class World extends EventTarget {
         return true;
     }
 
+    _setSimTime(t) {
+        if (!Number.isFinite(t) || t < 0) return false;
+        this.simTime = t;
+        this._emit('time:update', {time: t});
+        return true;
+    }
+
     _deleteCar(id) {
         const obj = this.cars.get(id);
         if (!obj) return false;
+        const born = this._carBirth.get(id);
+        if (born != null) {
+            const life = Math.max(0, this.simTime - born);
+            this._lifeStats.total += life;
+            this._lifeStats.count++;
+            this._lifeStats.avg = this._lifeStats.total / this._lifeStats.count;
+
+            this._emit('stats:avgLifetime', {
+                avgLifetime: this._lifeStats.avg,
+                samples: this._lifeStats.count,
+                last: life,
+                time: this.simTime,
+            });
+        }
         if (obj.node?.parent) obj.node.parent.remove(obj.node);
         disposeObject3D(obj.node);
         this.cars.delete(id);
@@ -572,6 +603,8 @@ export class World extends EventTarget {
         }
 
         this.cars.clear();
+        this._carBirth.clear();
+        this._lifeStats = {total: 0, count: 0, avg: 0};
 
         this._emit('car:reset', {carsTotal: this.cars.size});
     }

@@ -243,16 +243,22 @@ syncUI();
 const StatsUI = {
     carsInEl: document.getElementById("carsIn"),
     carsOutEl: document.getElementById("carsOut"),
+    simTimeEl: document.getElementById("simTime"),
+    avgLifeEl: document.getElementById("avgLife"),
 };
 
 const Stats = {
     carsIn: Number(StatsUI.carsInEl?.textContent || 0),
     carsOut: Number(StatsUI.carsOutEl?.textContent || 0),
+    simTime: Number(StatsUI.simTimeEl?.textContent || 0),
+    avgLife: Number(StatsUI.simTimeEl?.textContent || 0)
 };
 
 function paintStats() {
     if (StatsUI.carsInEl) StatsUI.carsInEl.textContent = String(Stats.carsIn);
     if (StatsUI.carsOutEl) StatsUI.carsOutEl.textContent = String(Stats.carsOut);
+    if (StatsUI.simTimeEl) StatsUI.simTimeEl.textContent = String(Stats.simTime);
+    if (StatsUI.avgLifeEl) StatsUI.avgLifeEl.textContent = String(Stats.avgLife);
 }
 
 world.addEventListener("car:created", () => {
@@ -268,8 +274,21 @@ world.addEventListener("car:deleted", () => {
 world.addEventListener("car:reset", () => {
     Stats.carsOut = 0;
     Stats.carsIn = 0;
+    Stats.simTime = 0;
+    Stats.avgLife = 0;
     paintStats();
 });
+
+world.addEventListener("time:update", (data) => {
+    Stats.simTime = Number(data.detail.time).toFixed(0);
+    paintStats();
+});
+
+world.addEventListener("stats:avgLifetime", (data) => {
+    Stats.avgLife = Number(data.detail.avgLifetime).toFixed(2);
+    paintStats();
+});
+
 
 // =============================================================
 //                     CAMERA PANEL UI BINDINGS
