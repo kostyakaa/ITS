@@ -53,13 +53,20 @@ public:
     }
 
     [[nodiscard]] double calculateDistanceTo(const SimObject& other) const {
-        Pose my_pose = pose();
-        Pose other_pose = other.pose();
+        Pose a = pose();
+        Pose b = other.pose();
 
-        double dx = other_pose.x - my_pose.x;
-        double dy = other_pose.y - my_pose.y;
-        return std::sqrt(dx * dx + dy * dy);
+        double dx = b.x - a.x;
+        double dy = b.y - a.y;
+        double center_dist = std::sqrt(dx * dx + dy * dy);
+
+        double r1 = 0.5 * std::hypot(length_, width_);
+        double r2 = 0.5 * std::hypot(other.length(), other.width());
+
+        double edge_dist = center_dist - (r1 + r2);
+        return edge_dist > 0.0 ? edge_dist : 0.0;
     }
+
 
     virtual void update(double dt, WorldContext& world) = 0;
 
