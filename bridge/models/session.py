@@ -63,7 +63,7 @@ class Session:
         try:
             buffer: List[str] = []
             flush_interval = FLUSH_INTERVAL_MS / 1000.0
-            max_batch_size = 10
+            max_batch_size = 5
             last_flush = asyncio.get_event_loop().time()
 
             async def flush():
