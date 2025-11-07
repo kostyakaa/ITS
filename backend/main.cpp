@@ -34,6 +34,8 @@ void inputHandleLoop() {
             }
             if (line == "reset") {
                 simulation.reset();
+                last_time_print = 0;
+                last_spawn = 0;
             } else if (line == "pause") {
                 paused = true;
             } else if (line == "resume") {
