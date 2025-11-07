@@ -323,7 +323,9 @@ export class World extends EventTarget {
 
         this.simTime = 0;
         this._carBirth = new Map();
-        this._lifeStats = {total: 0, count: 0, avg: 0};
+        this._lifeRecent = [];
+        this._lifeWindowSize = 100;
+        this._lifeStats = {count: 0, avg: 0};
 
         this.server = {
             init: (payload = {}) => this._apiInit(payload),
@@ -577,13 +579,21 @@ export class World extends EventTarget {
         const born = this._carBirth.get(id);
         if (born != null) {
             const life = Math.max(0, this.simTime - born);
-            this._lifeStats.total += life;
-            this._lifeStats.count++;
-            this._lifeStats.avg = this._lifeStats.total / this._lifeStats.count;
+
+            this._lifeRecent.push(life);
+            if (this._lifeRecent.length > this._lifeWindowSize) {
+                this._lifeRecent.shift();
+            }
+
+            const sum = this._lifeRecent.reduce((a, b) => a + b, 0);
+            const avg = sum / this._lifeRecent.length;
+
+            this._lifeStats.avg = avg;
+            this._lifeStats.count = this._lifeRecent.length;
 
             this._emit('stats:avgLifetime', {
-                avgLifetime: this._lifeStats.avg,
-                samples: this._lifeStats.count,
+                avgLifetime: avg,
+                samples: this._lifeRecent.length,
                 last: life,
                 time: this.simTime,
             });
