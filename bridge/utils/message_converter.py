@@ -1,7 +1,20 @@
 def convert_msg_to_dict(msg: str):
     splited = msg.split()
 
-    if len(splited) < 3:
+    if len(splited) < 2:
+        return {
+            "type": "invalid",
+            "error": "Unknown message type",
+            "meta": {"message": msg}
+        }
+
+    if len(splited) == 2:
+        action, value = splited
+        if action == "time":
+            return {
+                "type": "time",
+                "time": value
+            }
         return {
             "type": "invalid",
             "error": "Unknown message type",
