@@ -517,10 +517,9 @@ void Vehicle::update(double dt, WorldContext& world) {
 
     const Lane* L = world.net->getLane(lane_);
 
-    if ((lc_request_.has_value() && ((lc_state_ != LaneChangeState::Executing &&
-                                      lc_state_ != LaneChangeState::Aborting) ||
-                                     (L
-                                      && L->stopLineS.value_or(0) - s_ < 5))) ||
+    if ((lc_request_.has_value() &&
+         (lc_state_ != LaneChangeState::Executing &&
+          lc_state_ != LaneChangeState::Aborting)) ||
         !yielding_to_.empty()) {
         v_ = 0.0;
         a_ = 0.0;
