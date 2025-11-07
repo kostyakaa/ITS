@@ -82,6 +82,14 @@ public:
 
     static Vehicle randomVehicle(int from, RouteTracker rt);
 
+    static inline double signedLongitudinalGap(const Vehicle* ego,
+                                               const Vehicle* other) {
+        double ds = other->s() - ego->s();
+        double half_sum = 0.5 * (ego->length() + other->length());
+        return ds - half_sum;
+    }
+
+
     LaneId laneId() const { return lane_; }
 
     double s() const { return s_; }
