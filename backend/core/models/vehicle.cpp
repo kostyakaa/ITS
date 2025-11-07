@@ -8,7 +8,7 @@ namespace sim {
 
 Vehicle::Vehicle(const VehicleParams& vp, const DriverProfile& dp,
                  LaneId lane, double s0, double v0, RouteTracker rt)
-    : SimObject(ObjectType::Vehicle, 4.4, 1.8),
+    : SimObject(ObjectType::Vehicle, 3.4, 1.8),
       params_(vp),
       driver_(dp),
       rng_(id() * 1469598103934665603ULL),
@@ -86,11 +86,11 @@ void Vehicle::computeLongitudinal(WorldContext& world, const Lane& L,
         world.findLeaderInLane(L.id, s_, &gapToLeader)) {
         vFront = leader->v();
     }
-    if (L.isConnector || abs(s_ - L.stopLineS.value()) < 3) {
+    if (L.isConnector || abs(s_ - L.stopLineS.value()) < 2) {
         std::vector<VisibleObject> objects = getVisibleObjects(world);
         if (!objects.empty()) {
             vFront = std::min(vFront, 0.0);
-            gapToLeader = std::min(gapToLeader, objects[0].distance - 1);
+            gapToLeader = std::min(gapToLeader, objects[0].distance);
         }
     }
 
