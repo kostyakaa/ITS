@@ -489,3 +489,223 @@ body {
 .radio__label {
     opacity: .95;
 }
+
+/* ----- Панель камеры ----- */
+.panel--camera {
+    width: min(520px, 46vw);
+}
+
+.panel__body--camera {
+    padding-top: 10px;
+}
+
+/* select в стиле HUD */
+.row select {
+    padding: 7px 10px 6px;
+    min-width: 180px;
+    border-radius: 8px;
+    border: 1px solid var(--hud-border);
+    background: rgba(0, 0, 0, 0.26);
+    color: #fff;
+    font-family: inherit;
+    font-size: var(--hud-text-size);
+    outline: none;
+}
+
+/* чекбокс «Постоянное движение» */
+.row--checkbox {
+    grid-template-columns: 1fr auto;
+}
+
+/* превью траекторий */
+.cam-preview {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    margin: 6px 0 4px;
+    opacity: 0.9;
+}
+
+.cam-preview svg {
+    width: 130px;
+    height: 70px;
+}
+
+.cam-preview .axis {
+    stroke: rgba(255, 255, 255, .38);
+    stroke-width: 1.2;
+}
+
+.cam-preview .path {
+    fill: none;
+    stroke-width: 1.6;
+    opacity: .15;
+    transition: opacity .18s ease, stroke-width .18s ease;
+}
+
+.cam-preview .path--xy {
+    stroke: rgba(74, 222, 128, .86);
+}
+
+.cam-preview .path--xyz {
+    stroke: rgba(56, 189, 248, .9);
+}
+
+/* Подсветка активной траектории */
+.cam-preview[data-path="xyOrbit"] .path--xy {
+    opacity: 1;
+    stroke-width: 2.2;
+}
+
+.cam-preview[data-path="xyzOrbit"] .path--xyz {
+    opacity: 1;
+    stroke-width: 2.2;
+}
+
+.cam-preview[data-path="none"] .path {
+    opacity: .08;
+}
+
+/* по умолчанию слайдеры камеры скрыты — логика в JS */
+#camManualRow,
+#camSpeedRow {
+    display: none;
+}
+
+/* ----- Панель камеры ----- */
+.panel--camera {
+    width: min(520px, 46vw);
+}
+
+.panel__body--camera {
+    padding-top: 10px;
+}
+
+/* select */
+.row select {
+    padding: 4px 8px;
+    min-width: 180px;
+    border-radius: 8px;
+    border: 1px solid var(--hud-border);
+    background: rgba(0, 0, 0, 0.26);
+    color: #fff;
+    font-family: inherit;
+    font-size: var(--hud-text-size);
+    outline: none;
+}
+
+.row--checkbox {
+    grid-template-columns: 1fr auto;
+}
+
+
+
+
+/* по умолчанию слайдеры скрыты — управляем из JS */
+#camManualRow,
+#camSpeedRow,
+#camContinuousRow {
+    display: none;
+}
+
+/* Красивый тумблер только для чекбокса камеры */
+#camContinuous {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .10);
+    border: 1px solid var(--hud-border);
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+#camContinuous::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(148, 163, 253, 1);
+    box-shadow: 0 0 4px rgba(129, 140, 248, .9);
+    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+#camContinuous:checked {
+    background: rgba(74, 222, 128, .35);
+    border-color: rgba(74, 222, 128, .9);
+    box-shadow: 0 0 10px rgba(22, 163, 74, .7);
+}
+
+#camContinuous:checked::after {
+    transform: translateX(14px);
+    background: #bbf7d0;
+    box-shadow: 0 0 6px rgba(22, 163, 74, .9);
+}
+
+/* Камера: селект повыше, текст влезает */
+#camPath {
+    padding: 8px 14px 7px;
+    min-height: 34px;
+    line-height: 1.4;
+}
+
+.fab--pause {
+    /* остаётся на дефолтном месте */
+}
+
+.fab--restart {
+    top: calc(env(safe-area-inset-top, 0px) + 60px); /* ниже паузы */
+    right: calc(env(safe-area-inset-right, 0px) + 8px);
+}
+
+.fab .i-restart {
+    width: 24px;
+    height: 24px;
+}
+
+/* Тумблер постоянного движения камеры */
+#camContinuous {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, .9);              /* тёмный, как панель */
+    border: 1px solid rgba(148, 163, 253, .55);    /* мягкий индиго */
+    position: relative;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 0 4px rgba(15, 23, 42, 1);
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+#camContinuous::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(148, 163, 253, 1);           /* индиго, под общую палитру */
+    box-shadow: 0 0 4px rgba(79, 70, 229, .9);
+    transition: transform .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+#camContinuous:checked {
+    background: rgba(22, 163, 74, .25);           /* зелёный, как highlight в UI */
+    border-color: rgba(74, 222, 128, .9);
+    box-shadow: 0 0 10px rgba(22, 163, 74, .5);
+}
+
+#camContinuous:checked::after {
+    transform: translateX(14px);
+    background: #bbf7d0;                          /* светло-зелёный шарик */
+    box-shadow: 0 0 6px rgba(22, 163, 74, .9);
+}
