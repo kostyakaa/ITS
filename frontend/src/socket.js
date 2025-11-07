@@ -73,11 +73,11 @@ export class SimSocket {
         } else if (type === "signal") {
             let color = (id === 0 ? 'red' : (id === 2 ? 'green' : 'yellow'))
             if (action === "0") {
-                this.world.server.setTrafficLightColor("tl-1", color)
+                this.world.server.setTrafficLightColor("tl-4", color)
                 this.world.server.setTrafficLightColor("tl-3", color)
             } else {
                 this.world.server.setTrafficLightColor("tl-2", color)
-                this.world.server.setTrafficLightColor("tl-4", color)
+                this.world.server.setTrafficLightColor("tl-1", color)
             }
 
         } else {

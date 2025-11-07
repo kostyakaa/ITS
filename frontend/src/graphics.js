@@ -40,7 +40,7 @@ export function createCamera() {
     CAMERA.near || 0.1, CAMERA.far || 2000
   );
   cam.up.set(0, 0, 1);
-  cam.position.set(60, -60, 70);
+  cam.position.set(60, -60, 50);
   cam.lookAt(0, 0, 0);
   return cam;
 }

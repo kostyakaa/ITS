@@ -228,7 +228,7 @@ export function makeTree({
     const crownGroup = new THREE.Group();
 
     let zCursor = 0;
-    steps = steps + Math.floor(Math.random() * steps / 2) ;
+    steps = steps + Math.floor(Math.random() * steps / 2);
     for (let i = 0; i < steps; i++) {
         const hPart = crownH * (i === steps - 1 ? 0.34 : 0.33); // суммарно ≈ 1
         const w = crownBaseW * (1 - shrink * i);
@@ -330,6 +330,7 @@ export class World extends EventTarget {
             setTrafficLightColor: (id, color) => this._setTrafficLightColor(id, color),
             moveCar: (id, pose = {}) => this._moveCar(id, pose),
             deleteCar: (id) => this._deleteCar(id),
+            resetCars: () => {this._resetCars()}
         };
 
         // строим синхронно то, что можем сразу, а дорогу грузим асинхронно
@@ -563,6 +564,18 @@ export class World extends EventTarget {
 
         return true;
     }
+
+    _resetCars() {
+        for (const [id, obj] of this.cars) {
+            if (obj.node?.parent) obj.node.parent.remove(obj.node);
+            disposeObject3D(obj.node);
+        }
+
+        this.cars.clear();
+
+        this._emit('car:reset', {carsTotal: this.cars.size});
+    }
+
 
     update() {
         // пока только тик — пригодится для анимаций, если добавишь
