@@ -20,7 +20,6 @@ Vehicle::Vehicle(const VehicleParams& vp, const DriverProfile& dp,
 Vehicle Vehicle::randomVehicle(int from, RouteTracker rt) {
     DriverProfile dp{};
     VehicleParams vp{};
-    vp.minGap = 1;
     dp.laneChangeDuration = 2;
     return {vp, dp, from, 0, 0, std::move(rt)};
 }
@@ -242,7 +241,7 @@ void Vehicle::checkLaneChangeRequirement(WorldContext& world) {
                 lc_request_ =
                     LaneChangeRequest{.target_lane = next_lane,
                                       .request_time = world.clock->now,
-                                      .urgent = (distance_to_end < 10.0)};
+                                      .urgent = false};
                 lc_state_ = LaneChangeState::Planning;
             }
         }
