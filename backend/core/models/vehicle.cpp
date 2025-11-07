@@ -8,7 +8,7 @@ namespace sim {
 
 Vehicle::Vehicle(const VehicleParams& vp, const DriverProfile& dp,
                  LaneId lane, double s0, double v0, RouteTracker rt)
-    : SimObject(ObjectType::Vehicle),
+    : SimObject(ObjectType::Vehicle, 4.4, 1.8),
       params_(vp),
       driver_(dp),
       rng_(id() * 1469598103934665603ULL),
@@ -99,7 +99,7 @@ void Vehicle::computeLongitudinal(WorldContext& world, const Lane& L,
     perceiveTrafficLight(world, L);
     if (L.stopLineS && perceivedSignal_.has_value()) {
         double stopLinePos = *L.stopLineS;
-        double gapTL = stopLinePos - s_ - params_.length * 0.5;
+        double gapTL = stopLinePos - s_ - this->length() * 0.5;
 
         if (*perceivedSignal_ == CarSignal::Red) {
             double comfortBuffer = params_.minGap;
@@ -496,7 +496,7 @@ void Vehicle::completeLaneChange(WorldContext& world) {
 // Обновление боковой позиции
 void Vehicle::updateLateralPosition() {
     double target_d =
-        (lc_request_->target_lane > lane_) ? -params_.width : params_.width;
+        (lc_request_->target_lane > lane_) ? -this->width() : this->width();
     double smooth_t =
         lateral_progress_ * lateral_progress_ * (3 - 2 * lateral_progress_);
     d_ = target_d * smooth_t;

@@ -11,15 +11,19 @@ class WorldContext;
 
 class SimObject {
 public:
-    explicit SimObject(ObjectType t) : type_(t) {
+    explicit SimObject(ObjectType t, double width, double length) : type_(t) {
         static uint64_t simObjectId = 0;
         id_ = simObjectId++;
+        width_ = width;
+        length_ = length;
     }
 
     virtual ~SimObject() = default;
 
     [[nodiscard]] uint64_t id() const { return id_; }
     [[nodiscard]] ObjectType type() const { return type_; }
+    [[nodiscard]] double length() const { return length_; }
+    [[nodiscard]] double width() const { return width_; }
 
     // Поза в мировых координатах (x, y, theta)
     [[nodiscard]] virtual Pose pose() const = 0;
@@ -70,6 +74,8 @@ protected:
 private:
     uint64_t id_;
     ObjectType type_;
+    double length_{0.0};
+    double width_{0.0};
 };
 
 } // namespace sim
