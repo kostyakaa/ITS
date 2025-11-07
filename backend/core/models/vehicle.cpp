@@ -402,13 +402,24 @@ bool Vehicle::checkIfCanMergeSafely(const std::vector<VisibleVehicle>& vv) {
 
 
 bool Vehicle::isLaneChangeStillSafe(WorldContext& world) {
-    auto visible = getVisibleVehiclesInLane(world, lc_request_->target_lane);
-    for (const auto& v : visible) {
-        if (v.distance < params_.minGap * 3.0)
-            return false;
+    auto vis = getVisibleVehiclesInLane(world, lc_request_->target_lane);
+    const double front = params_.minGap * 1.2;
+    const double rear = params_.minGap * 1.2;
+
+    for (const auto& v : vis) {
+        const Vehicle* o = v.vehicle;
+        double gap = signedLongitudinalGap(this, o);
+        if (gap >= 0.0) {
+            if (gap < front)
+                return false;
+        } else {
+            if (-gap < rear)
+                return false;
+        }
     }
     return true;
 }
+
 
 void Vehicle::sendYieldRequests(const std::vector<VisibleVehicle>& vehicles,
                                 WorldContext& world) {
