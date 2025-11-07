@@ -10,8 +10,6 @@ namespace sim {
 using VehicleId = int;
 
 struct VehicleParams {
-    double length{4.4}; // длина автомобиля
-    double width{1.8}; // ширина автомобиля
     double maxAccel{1.5}; // a_max
     double comfyDecel{1.2}; // b
     double desiredSpeed{14.0}; // Желаемая скорость в m/s
@@ -95,8 +93,9 @@ public:
     Pose pose() const override;
 
     double boundingRadius() const override {
-        return std::max(params_.length, params_.width);
+        return 0.5 * std::hypot(this->length(), this->width());
     }
+
 
     void update(double dt, WorldContext& world) override;
 
