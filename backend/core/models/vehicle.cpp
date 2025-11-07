@@ -377,7 +377,7 @@ bool Vehicle::checkIfCanMergeSafely(
     const std::vector<VisibleVehicle>& visible) {
     for (const auto& v : visible) {
         double time_to_intercept = v.distance / (v.relative_speed + 0.1);
-        if (time_to_intercept < driver_.laneChangeDuration * 1.5) {
+        if (time_to_intercept < driver_.laneChangeDuration * 1.2) {
             return false;
         }
     }
@@ -387,7 +387,7 @@ bool Vehicle::checkIfCanMergeSafely(
 bool Vehicle::isLaneChangeStillSafe(WorldContext& world) {
     auto visible = getVisibleVehiclesInLane(world, lc_request_->target_lane);
     for (const auto& v : visible) {
-        if (v.distance < params_.minGap * 4.0)
+        if (v.distance < params_.minGap * 3.0)
             return false;
     }
     return true;
@@ -415,9 +415,9 @@ void Vehicle::receiveYieldRequest(VehicleId requester_id, bool is_urgent,
 
     double yield_prob = driver_.politeness;
     if (is_urgent)
-        yield_prob += 0.3;
+        yield_prob += 0.4;
     if (v_ < 5.0)
-        yield_prob += 0.2;
+        yield_prob += 0.3;
 
     if (rng_.uniform() < yield_prob) {
         yielding_to_.insert(requester_id);

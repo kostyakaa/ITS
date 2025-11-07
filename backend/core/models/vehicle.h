@@ -15,7 +15,7 @@ struct VehicleParams {
     double desiredSpeed{14.0}; // Желаемая скорость в m/s
     double timeHeadway{1.5};
     // Желаемый временной интервал до препятсвия спереди
-    double minGap{2.0}; // минимальный зазор при полной остановке
+    double minGap{3.0}; // минимальный зазор при полной остановке
     // секунды латерального перехода (когда добавите LC)
     double viewDistance{80.0};
     double fovRad{0.7}; // ~149°
