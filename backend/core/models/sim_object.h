@@ -58,13 +58,24 @@ public:
 
         double dx = b.x - a.x;
         double dy = b.y - a.y;
-        double center_dist = std::sqrt(dx * dx + dy * dy);
 
-        double r1 = 0.5 * std::hypot(length_, width_);
-        double r2 = 0.5 * std::hypot(other.length(), other.width());
+        double dist = std::sqrt(dx * dx + dy * dy);
+        if (dist < 1e-6)
+            return 0.0;
 
-        double edge_dist = center_dist - (r1 + r2);
-        return edge_dist > 0.0 ? edge_dist : 0.0;
+        double angle_to_other = std::atan2(dy, dx);
+
+        double forward_component = std::cos(angleDiff(a.theta, angle_to_other));
+
+        double distance_along_axis = dist * forward_component;
+
+        double my_front_offset = length_ * 0.5;
+        double other_rear_offset = other.length() * 0.5;
+
+        double gap = distance_along_axis - (
+                         my_front_offset + other_rear_offset);
+
+        return gap > 0.0 ? gap : 0.0;
     }
 
 
