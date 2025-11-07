@@ -55,7 +55,7 @@ const CameraCtrl = {
     continuous: false,  // true = постоянное движение
     t: 0,               // текущий параметр [0..1]
     targetT: 0,         // целевая точка для ручного режима
-    speed: 0.25         // скорость для continuous (условные обороты/сек)
+    speed: 0.05         // скорость для continuous (условные обороты/сек)
 };
 
 // позиция камеры по траектории
@@ -210,27 +210,8 @@ function setTrafficMode(mode) {
 
 // мягкий рестарт симуляции
 function restartSim() {
-    // опционально сообщаем на сервер
-    try {
-        sendControl("restart", "");
-    } catch (e) {
-        // игнор
-    }
-
-    // если у мира есть reset — используем его,
-    // иначе просто перезагружаем страницу
-    if (typeof world.reset === "function") {
-        world.reset();
-
-        SIM.paused = false;
-        paintPaused();
-
-        Stats.carsIn = 0;
-        Stats.carsOut = 0;
-        paintStats();
-    } else {
-        window.location.reload();
-    }
+    sendControl("reset", "");
+    world.server.resetCars();
 }
 
 window.addEventListener("sim:setPaused", e => setPaused(!!e.detail));
@@ -281,6 +262,12 @@ world.addEventListener("car:created", () => {
 
 world.addEventListener("car:deleted", () => {
     Stats.carsOut += 1;
+    paintStats();
+});
+
+world.addEventListener("car:reset", () => {
+    Stats.carsOut = 0;
+    Stats.carsIn = 0;
     paintStats();
 });
 
@@ -380,7 +367,7 @@ function setCamManual(val) {
 
 function setCamSpeed(v) {
     const num = Number(v);
-    CameraCtrl.speed = (isFinite(num) && num > 0) ? num : 0.25;
+    CameraCtrl.speed = (isFinite(num) && num > 0) ? num : 0.05;
     if (CamUI.speedOut) {
         CamUI.speedOut.textContent = "×" + CameraCtrl.speed.toFixed(2);
     }
@@ -417,3 +404,54 @@ function applyServerState(patch) {
     if ("trafficMode" in patch) SIM.tlMode = String(patch.trafficMode);
     syncUI();
 }
+
+
+// ==== Tilt-Shift Overlay ====================
+(function installTiltShiftOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'tiltShiftOverlay';
+    overlay.dataset.mode = 'corners'; // 'corners' или 'band'
+    document.body.appendChild(overlay);
+
+    function set(opts = {}) {
+        const setVar = (k, v) => v != null && overlay.style.setProperty(k, String(v));
+        if (opts.mode) overlay.dataset.mode = opts.mode;
+
+        setVar('--ts-opacity', opts.opacity);
+        setVar('--ts-blur', opts.blurPx != null ? `${opts.blurPx}px` : null);
+        setVar('--ts-angle', opts.angleDeg != null ? `${opts.angleDeg}deg` : null);
+
+        if (overlay.dataset.mode === 'corners') {
+            setVar('--ts-cx', opts.cx != null ? `${opts.cx}%` : null);
+            setVar('--ts-cy', opts.cy != null ? `${opts.cy}%` : null);
+            setVar('--ts-band', opts.bandPct != null ? `${opts.bandPct}%` : null);
+            setVar('--ts-falloff', opts.falloffPct != null ? `${opts.falloffPct}%` : null);
+        } else { // band
+            setVar('--ts-bandStart', opts.bandStartPct != null ? `${opts.bandStartPct}%` : null);
+            setVar('--ts-bandEnd', opts.bandEndPct != null ? `${opts.bandEndPct}%` : null);
+        }
+    }
+
+    set({
+        mode: 'corners',
+        //   lurPx: 7,
+        // bandPct: 15,
+        blurPx: 3,        // сила размытия
+        bandPct: 30,      // радиус «резкого» центра
+        falloffPct: 30,   // ширина перехода к блюру
+        cx: 50, cy: 50,   // смещение центра эллипса
+        opacity: 0
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyT') {
+            const cur = parseFloat(getComputedStyle(overlay).getPropertyValue('--ts-opacity') || '1');
+            set({opacity: cur > 0 ? 0 : 1});
+        }
+        if (e.code === 'KeyY') {
+            overlay.dataset.mode = overlay.dataset.mode === 'corners' ? 'band' : 'corners';
+        }
+    });
+
+    window.TiltShift = {set, overlay};
+})();

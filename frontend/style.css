@@ -709,3 +709,51 @@ body {
     background: #bbf7d0;                          /* светло-зелёный шарик */
     box-shadow: 0 0 6px rgba(22, 163, 74, .9);
 }
+
+/* ==== Tilt-Shift overlay (экранный блюр с маской) ========================= */
+#tiltShiftOverlay{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 950; /* ниже HUD (1000), выше канваса */
+}
+
+/* базовый слой блюра; управляется CSS-переменными */
+#tiltShiftOverlay::before{
+  content: "";
+  position: absolute; inset: 0;
+
+  /* сам размытие фона */
+  backdrop-filter: blur(var(--ts-blur, 8px));
+  -webkit-backdrop-filter: blur(var(--ts-blur, 8px));
+
+  /* прозрачность всего эффекта */
+  opacity: var(--ts-opacity, 1);
+
+  /* маска задаёт «где видно блюр» — подменяем в режимах ниже */
+  mask-image: var(--ts-mask, radial-gradient(circle at 50% 55%, transparent 38%, black 60%));
+
+  /* для полосы можно вращать весь слой */
+  transform: rotate(var(--ts-angle, 0deg));
+  transform-origin: center;
+}
+
+/* Режим 1: размытые края/уголки (резкий центр эллипса) */
+#tiltShiftOverlay[data-mode="corners"]::before{
+  mask-image: radial-gradient(
+    ellipse at var(--ts-cx, 50%) var(--ts-cy, 55%),
+    transparent var(--ts-band, 38%),
+    black calc(var(--ts-band, 38%) + var(--ts-falloff, 18%))
+  );
+}
+
+/* Режим 2: классический tilt-shift — резкая полоса, остальное размыто */
+#tiltShiftOverlay[data-mode="band"]::before{
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    transparent var(--ts-bandStart, 40%),
+    transparent var(--ts-bandEnd, 60%),
+    black 100%
+  );
+}
