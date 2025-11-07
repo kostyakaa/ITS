@@ -80,6 +80,9 @@ export class SimSocket {
                 this.world.server.setTrafficLightColor("tl-1", color)
             }
 
+        } else if (type === "time") {
+            let time = Number(cmd.time);
+            this.world.server.setTime(time);
         } else {
             console.log("[WS] Unsupported type:", type, cmd);
         }

@@ -604,6 +604,7 @@ export class World extends EventTarget {
 
         this.cars.clear();
         this._carBirth.clear();
+        this._lifeStats = {total: 0, count: 0, avg: 0};
 
         this._emit('car:reset', {carsTotal: this.cars.size});
     }
