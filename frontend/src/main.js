@@ -135,13 +135,27 @@ const UI = {
     pauseBtn: document.getElementById("pauseBtn"),
     restartBtn: document.getElementById("restartBtn"),
     tlRadios: Array.from(document.querySelectorAll('input[name="tlMode"]')),
+
+    tlStaticRow: document.getElementById("tlStaticRow"),
+    tlGreen: document.getElementById("tlGreen"),
+    tlYellow: document.getElementById("tlYellow"),
+    tlRed: document.getElementById("tlRed"),
 };
 
 const SIM = {
     paused: false,
     timeScale: Number(UI.speed?.value || 1),
     density: Number(UI.density?.value || 1.5),
-    tlMode: UI.tlRadios.find(r => r.checked)?.value || "mode1",
+
+    // режим светофора: 'static' | 'adaptive'
+    tlMode: UI.tlRadios.find(r => r.checked)?.value || "static",
+
+    // настройки статичного светофора (секунды)
+    tlStatic: {
+        green: 10,
+        yellow: 3,
+        red: 10,
+    },
 };
 
 const fmt = {
@@ -163,6 +177,20 @@ function paintMode() {
     UI.tlRadios.forEach(r => {
         r.checked = (r.value === SIM.tlMode);
     });
+
+    const isStatic = SIM.tlMode === "static";
+
+    // показываем/прячем блок с временами фаз
+    if (UI.tlStaticRow) {
+        UI.tlStaticRow.style.display = isStatic ? "grid" : "none";
+    }
+
+    // при смене на статичный — подтянуть значения из SIM в инпуты
+    if (isStatic) {
+        if (UI.tlGreen) UI.tlGreen.value = SIM.tlStatic.green;
+        if (UI.tlYellow) UI.tlYellow.value = SIM.tlStatic.yellow;
+        if (UI.tlRed) UI.tlRed.value = SIM.tlStatic.red;
+    }
 }
 
 function paintPaused() {
