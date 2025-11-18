@@ -68,6 +68,13 @@ void inputHandleLoop() {
                     }
                     cars_spawn_time = k;
                 }
+            } else if (line.rfind("change_phases", 0) == 0) {
+                std::istringstream iss(line);
+                std::string cmd;
+                double r, g, y;
+                if (iss >> cmd >> r >> g >> y) {
+                    simulation.setSignalProgram(r, y, g);
+                }
             }
         } else {
             running = false;

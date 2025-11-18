@@ -32,8 +32,8 @@ class Simulation {
                         const Goal& goal, double s0 = 0.0) {
         RouteTracker route(&network_);
         route.setGoalAndPlan(startLane, goal, pathfinder_);
-        vehicles_.emplace_back(params,
-                               driver, startLane, s0, 0.0, std::move(route));
+        vehicles_.emplace_back(params, driver, startLane, s0, 0.0,
+                               std::move(route));
         syncVehicles();
         return vehicles_.back();
     }
@@ -70,7 +70,6 @@ class Simulation {
 
         syncVehicles();
     }
-
 
     void buildRoad(const Vec2& from, const Vec2& to, const std::string& name) {
         auto result = network_.addStraightRoad(from, to, 2, 3.5, 50.0);
@@ -126,6 +125,22 @@ class Simulation {
         controller_.addCarGroup(group2);
     }
 
+    void setSignalProgram(double red_s, double yellow_s, double green_s) {
+        SignalPhase red{red_s, CarSignal::Red};
+        SignalPhase yellow{yellow_s, CarSignal::Yellow};
+        SignalPhase green{green_s, CarSignal::Green};
+
+        TrafficLightGroup group1, group2;
+        group1.id = 1;
+        group2.id = 2;
+
+        group1.setProgram({red, yellow, green, yellow});
+        group2.setProgram({green, yellow, red, yellow});
+
+        controller_.addCarGroup(group1);
+        controller_.addCarGroup(group2);
+    }
+
     void removeVehicleById(int id) {
         auto it =
             std::remove_if(vehicles_.begin(), vehicles_.end(),
@@ -172,7 +187,8 @@ class Simulation {
     std::vector<SimObject*> object_ptrs_;
     WorldContext world_;
     Pathfinder pathfinder_;
-    RNG rngg{static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count())};
+    RNG rngg{static_cast<uint64_t>(
+        std::chrono::high_resolution_clock::now().time_since_epoch().count())};
 
     void syncVehicles() {
         vehicle_ptrs_.clear();
@@ -184,7 +200,9 @@ class Simulation {
     }
 
     std::pair<LaneId, RouteTracker> getRandomRoute() {
-        std::vector<int> startLanes = {2, 4, 6, 8, 10, 12,}; //  14, 16
+        std::vector<int> startLanes = {
+            2, 4, 6, 8, 10, 12,
+        };  //  14, 16
         std::vector<int> endLanes = {1, 3, 5, 7, 9, 11, 13, 15};
         std::vector<int> freeLanes;
         for (int laneId : startLanes) {
@@ -207,21 +225,21 @@ class Simulation {
 
         LaneId startLane = rngg.uniform(0, freeLanes.size() - 1);
 
-
         // выбрали startLane ранее
-        int k = (freeLanes[startLane] - 2) / 4;           // индекс блока {2,4},{6,8},{10,12},...
-        int forbid1 = 4 * k + 1;               // первая запрещённая
-        int forbid2 = 4 * k + 3;               // вторая запрещённая
+        int k = (freeLanes[startLane] - 2) /
+                4;                // индекс блока {2,4},{6,8},{10,12},...
+        int forbid1 = 4 * k + 1;  // первая запрещённая
+        int forbid2 = 4 * k + 3;  // вторая запрещённая
 
         std::vector<int> allowedEndLanes;
         allowedEndLanes.reserve(endLanes.size());
         for (int laneId : endLanes) {
-            if (laneId == forbid1 || laneId == forbid2) continue;
+            if (laneId == forbid1 || laneId == forbid2)
+                continue;
             allowedEndLanes.push_back(laneId);
         }
 
         LaneId goalLane = rngg.uniform(0, allowedEndLanes.size() - 1);
-
 
         RouteTracker route_tracker(&network_);
         route_tracker.setGoalAndPlan(freeLanes[startLane],
@@ -231,4 +249,4 @@ class Simulation {
     }
 };
 
-} // namespace sim
+}  // namespace sim
