@@ -146,6 +146,9 @@ const SIM = {
     paused: false,
     timeScale: Number(UI.speed?.value || 1),
     density: Number(UI.density?.value || 1.5),
+    tlGreen: Number(UI.tlGreen?.value || 20),
+    tlRed: Number(UI.tlRed?.value || 30),
+    tlYellow: Number(UI.tlYellow?.value || 3),
 
     // режим светофора: 'static' | 'adaptive'
     tlMode: UI.tlRadios.find(r => r.checked)?.value || "static",
@@ -235,6 +238,21 @@ function setTrafficMode(mode) {
     sendControl("trafficMode", SIM.tlMode);
 }
 
+function setTlGreen(val) {
+    SIM.tlGreen = Number(val);
+    sendControl("change_phases", SIM.tlRed + " " + SIM.tlGreen + " " + SIM.tlYellow);
+}
+
+function setTlRed(val) {
+    SIM.tlRed = Number(val);
+    sendControl("change_phases", SIM.tlRed + " " + SIM.tlGreen + " " + SIM.tlYellow);
+}
+
+function setTlYellow(val) {
+    SIM.tlYellow = Number(val);
+    sendControl("change_phases", SIM.tlRed + " " + SIM.tlGreen + " " + SIM.tlYellow);
+}
+
 // мягкий рестарт симуляции
 function restartSim() {
     sendControl("reset", "");
@@ -248,6 +266,9 @@ window.addEventListener("sim:setTrafficMode", e => setTrafficMode(String(e.detai
 
 UI.speed?.addEventListener("input", e => setSpeed(e.target.value));
 UI.density?.addEventListener("input", e => setDensity(e.target.value));
+UI.tlGreen?.addEventListener("input", e => setTlGreen(e.target.value));
+UI.tlYellow?.addEventListener("input", e => setTlYellow(e.target.value));
+UI.tlRed?.addEventListener("input", e => setTlRed(e.target.value));
 UI.tlRadios.forEach(r => r.addEventListener("change", e => {
     if (e.target.checked) setTrafficMode(e.target.value);
 }));
