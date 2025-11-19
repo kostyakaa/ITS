@@ -11,7 +11,7 @@ namespace sim {
 
 class Simulation {
 
-   public:
+public:
     Simulation()
         : world_(&network_, &controller_, &clock_, &object_ptrs_,
                  &vehicle_ptrs_),
@@ -53,6 +53,9 @@ class Simulation {
 
     void update(double dt) {
         clock_.now += dt;
+        if (isControllerAdaptive) {
+            controller_.applyAdaptiveLogic(world_);
+        }
         controller_.update(dt);
         for (auto& v : vehicles_)
             v.update(dt, world_);
@@ -141,6 +144,10 @@ class Simulation {
         controller_.addCarGroup(group2);
     }
 
+    void setAdaptiveMode(bool state) {
+        isControllerAdaptive = state;
+    }
+
     void removeVehicleById(int id) {
         auto it =
             std::remove_if(vehicles_.begin(), vehicles_.end(),
@@ -177,7 +184,7 @@ class Simulation {
     const WorldContext& world() const { return world_; }
     double time() const { return clock_.now; }
 
-   private:
+private:
     RoadNetwork network_;
     SignalController controller_;
     SimulationClock clock_;
@@ -187,8 +194,18 @@ class Simulation {
     std::vector<SimObject*> object_ptrs_;
     WorldContext world_;
     Pathfinder pathfinder_;
+    bool isControllerAdaptive = false;
     RNG rngg{static_cast<uint64_t>(
         std::chrono::high_resolution_clock::now().time_since_epoch().count())};
+    std::unordered_map<int, double> spawnWeights_ = {
+        {2, 1.0},
+        {4, 1.0},
+        {6, 1.0},
+        {8, 1.0},
+        {10, 1.0},
+        {12, 1.0}
+    };
+
 
     void syncVehicles() {
         vehicle_ptrs_.clear();
@@ -199,54 +216,69 @@ class Simulation {
             object_ptrs_.push_back(v);
     }
 
+    int chooseLaneWeighted(const std::vector<int>& lanes) {
+        double total = 0;
+
+        for (int lane : lanes)
+            total += spawnWeights_[lane];
+
+        double r = rngg.uniform(0.0, total);
+        double accum = 0.0;
+
+        for (int lane : lanes) {
+            accum += spawnWeights_[lane];
+            if (r <= accum)
+                return lane;
+        }
+
+        return lanes.back();
+    }
+
+
     std::pair<LaneId, RouteTracker> getRandomRoute() {
-        std::vector<int> startLanes = {
-            2, 4, 6, 8, 10, 12,
-        };  //  14, 16
+        std::vector<int> startLanes = {2, 4, 6, 8, 10, 12};
         std::vector<int> endLanes = {1, 3, 5, 7, 9, 11, 13, 15};
+
         std::vector<int> freeLanes;
         for (int laneId : startLanes) {
             bool isOccupied = false;
-            for (Vehicle veh : vehicles_) {
-                if (veh.laneId() == laneId) {
-                    if (veh.s() < 5) {
-                        isOccupied = true;
-                        break;
-                    }
+            for (const Vehicle& veh : vehicles_) {
+                if (veh.laneId() == laneId && veh.s() < 5.0) {
+                    isOccupied = true;
+                    break;
                 }
             }
-            if (!isOccupied) {
+            if (!isOccupied)
                 freeLanes.push_back(laneId);
-            }
         }
+
         if (freeLanes.empty()) {
             return {-1, RouteTracker(&network_)};
         }
 
-        LaneId startLane = rngg.uniform(0, freeLanes.size() - 1);
+        int startLane = chooseLaneWeighted(freeLanes);
 
-        // выбрали startLane ранее
-        int k = (freeLanes[startLane] - 2) /
-                4;                // индекс блока {2,4},{6,8},{10,12},...
-        int forbid1 = 4 * k + 1;  // первая запрещённая
-        int forbid2 = 4 * k + 3;  // вторая запрещённая
+        int k = (startLane - 2) / 4;
+        int forbid1 = 4 * k + 1;
+        int forbid2 = 4 * k + 3;
 
         std::vector<int> allowedEndLanes;
-        allowedEndLanes.reserve(endLanes.size());
         for (int laneId : endLanes) {
-            if (laneId == forbid1 || laneId == forbid2)
-                continue;
-            allowedEndLanes.push_back(laneId);
+            if (laneId != forbid1 && laneId != forbid2)
+                allowedEndLanes.push_back(laneId);
         }
 
-        LaneId goalLane = rngg.uniform(0, allowedEndLanes.size() - 1);
+        int goalLane = allowedEndLanes[rngg.uniform(
+            0, (int)allowedEndLanes.size() - 1)];
 
         RouteTracker route_tracker(&network_);
-        route_tracker.setGoalAndPlan(freeLanes[startLane],
-                                     Goal::toLane(allowedEndLanes[goalLane]),
+        route_tracker.setGoalAndPlan(startLane,
+                                     Goal::toLane(goalLane),
                                      pathfinder_);
-        return {freeLanes[startLane], route_tracker};
+
+        return {startLane, route_tracker};
     }
+
 };
 
-}  // namespace sim
+} // namespace sim

@@ -75,6 +75,13 @@ void inputHandleLoop() {
                 if (iss >> cmd >> r >> g >> y) {
                     simulation.setSignalProgram(r, y, g);
                 }
+            } else if (line.rfind("set_adaprive", 0) == 0) {
+                std::istringstream iss(line);
+                std::string cmd;
+                bool state;
+                if (iss >> cmd >> state) {
+                    simulation.setAdaptiveMode(state);
+                }
             }
         } else {
             running = false;
