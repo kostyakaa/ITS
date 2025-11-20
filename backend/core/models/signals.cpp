@@ -1,4 +1,5 @@
 #include "signals.h"
+#include "world_context.h"
 
 namespace sim {
 
@@ -65,5 +66,45 @@ void SignalController::update(double dt) {
     for (auto& kv : pedLights_)
         kv.second.update(dt);
 }
+
+void SignalController::applyAdaptiveLogic(const WorldContext& world) {
+    auto* g1 = carGroup(1);
+    auto* g2 = carGroup(2);
+    if (!g1 || !g2)
+        return;
+
+    double q1 = estimateQueueLength(*g1, world);
+    double q2 = estimateQueueLength(*g2, world);
+
+    adaptPhaseDurations(*g1, q1, q2);
+    adaptPhaseDurations(*g2, q2, q1);
+}
+
+
+void SignalController::adaptPhaseDurations(TrafficLightGroup& g, double myQueue,
+                                           double otherQueue) {
+    auto prog = g.program();
+    auto& green = prog[2];
+
+    double base = 20.0;
+    double delta = (myQueue - otherQueue) * 2.0;
+
+    green.duration = std::clamp(base + delta, 10.0, 40.0);
+
+    g.setProgram(prog);
+}
+
+double SignalController::estimateQueueLength(const TrafficLightGroup& g,
+                                             const WorldContext& world) {
+    double count = 0.0;
+    for (int laneId : g.controlledLaneIds) {
+        double gap;
+        auto* leader = world.findLeaderInLane(laneId, 0.0, &gap);
+        if (leader)
+            count++;
+    }
+    return count;
+}
+
 
 } // namespace sim

@@ -6,6 +6,8 @@
 
 namespace sim {
 
+class WorldContext;
+
 enum class CarSignal { Red, RedYellow, Green, Yellow, Off };
 
 enum class PedSignal { DontWalk, Walk, FlashingDontWalk, Off };
@@ -28,6 +30,11 @@ public:
 
     void setProgram(const std::vector<SignalPhase>& phases);
     void update(double dt);
+
+    std::vector<SignalPhase> program() {
+        return this->prog_;
+    }
+
     [[nodiscard]] CarSignal state() const { return current_; }
     [[nodiscard]] double timeInPhase() const { return tInPhase_; }
     [[nodiscard]] int phaseIndex() const { return phaseIdx_; }
@@ -66,6 +73,8 @@ public:
 
     void update(double dt);
 
+    void applyAdaptiveLogic(const WorldContext& world);
+
     const std::unordered_map<int, TrafficLightGroup>& carGroups() const {
         return carGroups_;
     }
@@ -77,6 +86,10 @@ public:
 private:
     std::unordered_map<int, TrafficLightGroup> carGroups_;
     std::unordered_map<int, PedestrianLight> pedLights_;
+    double estimateQueueLength(const TrafficLightGroup& g,
+                               const WorldContext& world);
+    void adaptPhaseDurations(TrafficLightGroup& g,
+                             double myQueue, double otherQueue);
 };
 
 } // namespace sim
