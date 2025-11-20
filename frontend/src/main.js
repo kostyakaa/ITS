@@ -235,7 +235,7 @@ function setDensity(val) {
 function setTrafficMode(mode) {
     SIM.tlMode = String(mode);
     paintMode();
-    sendControl("trafficMode", SIM.tlMode);
+    sendControl("set_adaptive", (SIM.tlMode === "adaptive"));
 }
 
 function setTlGreen(val) {
