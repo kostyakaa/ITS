@@ -140,6 +140,13 @@ const UI = {
     tlGreen: document.getElementById("tlGreen"),
     tlYellow: document.getElementById("tlYellow"),
     tlRed: document.getElementById("tlRed"),
+
+
+    spawnN: document.getElementById("spawnN"),
+    spawnE: document.getElementById("spawnE"),
+    spawnS: document.getElementById("spawnS"),
+    spawnW: document.getElementById("spawnW"),
+
 };
 
 const SIM = {
@@ -156,6 +163,14 @@ const SIM = {
         yellow: 3,
         red: 10,
     },
+
+    spawnProb: {
+        n: 25,
+        e: 25,
+        s: 25,
+        w: 25,
+    },
+
 };
 
 const fmt = {
@@ -204,6 +219,7 @@ function syncUI() {
     paintSpeed();
     paintDensity();
     paintMode();
+    paintSpawn();
     paintPaused();
 }
 
@@ -254,6 +270,23 @@ UI.tlRadios.forEach(r => r.addEventListener("change", e => {
 UI.pauseBtn?.addEventListener("click", () => setPaused(!SIM.paused));
 UI.restartBtn?.addEventListener("click", () => restartSim());
 
+function sendSpawnProbabilities() {
+
+}
+
+function setSpawn(dir, val) {
+    const num = Math.max(0, Math.min(100, Number(val) || 0)); // clamp [0;1]
+    if (!SIM.spawnProb.hasOwnProperty(dir)) return;
+    SIM.spawnProb[dir] = num;
+    paintSpawn();
+    sendSpawnProbabilities();
+}
+
+UI.spawnN?.addEventListener("input", (e) => setSpawn("n", e.target.value));
+UI.spawnE?.addEventListener("input", (e) => setSpawn("e", e.target.value));
+UI.spawnS?.addEventListener("input", (e) => setSpawn("s", e.target.value));
+UI.spawnW?.addEventListener("input", (e) => setSpawn("w", e.target.value));
+
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space") {
         e.preventDefault();
@@ -286,6 +319,13 @@ function paintStats() {
     if (StatsUI.carsOutEl) StatsUI.carsOutEl.textContent = String(Stats.carsOut);
     if (StatsUI.simTimeEl) StatsUI.simTimeEl.textContent = String(Stats.simTime);
     if (StatsUI.avgLifeEl) StatsUI.avgLifeEl.textContent = String(Stats.avgLife);
+}
+
+function paintSpawn() {
+    if (UI.spawnN) UI.spawnN.value = SIM.spawnProb.n;
+    if (UI.spawnE) UI.spawnE.value = SIM.spawnProb.e;
+    if (UI.spawnS) UI.spawnS.value = SIM.spawnProb.s;
+    if (UI.spawnW) UI.spawnW.value = SIM.spawnProb.w;
 }
 
 world.addEventListener("car:created", () => {

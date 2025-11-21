@@ -1113,3 +1113,78 @@ body {
     font-family: inherit;
     font-size: 0.9em;
 }
+
+
+.tl-static-inputs,
+.spawn-inputs {
+    display: grid;
+    gap: 6px;
+    font-size: var(--hud-text-size);
+}
+
+.tl-static-inputs {
+    grid-template-columns: repeat(3, minmax(70px, 1fr));
+}
+
+.spawn-inputs {
+    grid-template-columns: repeat(4, minmax(70px, 1fr));
+}
+
+.tl-static-inputs label,
+.spawn-inputs label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tl-static-inputs input[type="number"],
+.spawn-inputs input[type="number"] {
+    width: 70px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--hud-border);
+    background: rgba(0, 0, 0, 0.26);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.9em;
+}
+
+.row--spawn {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap; /* чтобы на узких экранах ничего не налезало */
+}
+
+.spawn-inputs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(72px, 1fr));
+    gap: 6px;
+    font-size: var(--hud-text-size);
+}
+
+.spawn-inputs label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap; /* N:, E: не переносятся на новую строку */
+}
+
+.spawn-inputs input[type="number"] {
+    width: 3.5em;           /* под «100» хватает */
+    padding: 3px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--hud-border);
+    background: rgba(0, 0, 0, 0.26);
+    color: #fff;
+    font-family: inherit;
+    font-size: 0.9em;
+    text-align: right;
+}
+
+/* На очень маленьких экранах — 2×2, чтобы точно не жалось */
+@media (max-width: 740px) {
+    .spawn-inputs {
+        grid-template-columns: repeat(2, minmax(72px, 1fr));
+    }
+}
