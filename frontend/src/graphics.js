@@ -1,5 +1,11 @@
 import * as THREE from "three";
-import { CAMERA } from "./config.js";
+
+export const CAMERA = {
+  near: 0.1,
+  far: 2000,
+  orthoBase: 90,
+};
+
 
 export function createRenderer(canvas) {
   const renderer = new THREE.WebGLRenderer({

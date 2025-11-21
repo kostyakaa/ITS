@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import {WORLD, TEXTURE} from "./config.js";
 import {VoxelCar as Car} from "./voxelCar.js";
 import {makeCrossCurbs} from "./curb.js";
 import {makeCrossSidewalks} from "./sidewalk.js";
@@ -8,6 +7,14 @@ import {
     setTrafficLightState,
     setDiscState,
 } from "./trafficLight.js";
+
+const TEXTURE = {
+  meters: 100,
+  pixels: 10000,
+  url: "./road/full.svg",
+};
+
+export const WORLD = { size: 100, half: 50 };
 
 const loadingManager = new THREE.LoadingManager();
 

@@ -124,8 +124,9 @@
                         <span class="radio__label">Адаптивный</span>
                     </label>
                 </fieldset>
+
                 <div class="row" id="tlStaticRow" style="display:none">
-                    <div>Фазы:</div>
+                    <div>Интервалы фаз светофоров, сек:</div>
                     <div class="tl-static-inputs">
                         <label>
                             G:
@@ -141,6 +142,29 @@
                         </label>
                     </div>
                 </div>
+
+                <div class="row row--spawn">
+                    <span>Шанс спавна машин на линии, %:</span>
+                    <div class="spawn-inputs">
+                        <label>
+                            N:
+                            <input type="number" id="spawnN" min="0" max="100" step="1" value="25">
+                        </label>
+                        <label>
+                            E:
+                            <input type="number" id="spawnE" min="0" max="100" step="1" value="25">
+                        </label>
+                        <label>
+                            S:
+                            <input type="number" id="spawnS" min="0" max="100" step="1" value="25">
+                        </label>
+                        <label>
+                            W:
+                            <input type="number" id="spawnW" min="0" max="100" step="1" value="25">
+                        </label>
+                    </div>
+                </div>
+
 
             </div>
         </details>
