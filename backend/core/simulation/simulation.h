@@ -148,6 +148,26 @@ public:
         isControllerAdaptive = state;
     }
 
+    void setDirectionWeight(const std::string& direction, double value) {
+        static const std::unordered_map<std::string, std::vector<int>> dirLanes
+            = {
+                {"n", {2, 4}},
+                {"s", {6, 8}},
+                {"e", {10, 12}},
+                {"w", {14, 16}}
+            };
+
+        auto it = dirLanes.find(direction);
+        if (it == dirLanes.end()) {
+            return;
+        }
+
+        for (int lane : it->second) {
+            spawnWeights_[lane] = value;
+        }
+    }
+
+
     void removeVehicleById(int id) {
         auto it =
             std::remove_if(vehicles_.begin(), vehicles_.end(),

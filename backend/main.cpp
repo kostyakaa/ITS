@@ -82,6 +82,13 @@ void inputHandleLoop() {
                 if (iss >> cmd >> state) {
                     simulation.setAdaptiveMode(state);
                 }
+            } else if (line.rfind("set_weights", 0) == 0) {
+                std::istringstream iss(line);
+                std::string cmd, dir;
+                double val;
+                if (iss >> cmd >> dir >> val) {
+                    simulation.setDirectionWeight(dir, val);
+                }
             }
         } else {
             running = false;
