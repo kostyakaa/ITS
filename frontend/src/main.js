@@ -168,10 +168,10 @@ const SIM = {
     },
 
     spawnProb: {
-        n: 25,
-        e: 25,
-        s: 25,
-        w: 25,
+        n: 1,
+        e: 1,
+        s: 1,
+        w: 1,
     },
 
 };
@@ -291,8 +291,8 @@ UI.tlRadios.forEach(r => r.addEventListener("change", e => {
 UI.pauseBtn?.addEventListener("click", () => setPaused(!SIM.paused));
 UI.restartBtn?.addEventListener("click", () => restartSim());
 
-function sendSpawnProbabilities() {
-
+function sendSpawnProbabilities(dir, val) {
+    sendControl("set_weights", `${dir} ${val}`)
 }
 
 function setSpawn(dir, val) {
@@ -300,7 +300,7 @@ function setSpawn(dir, val) {
     if (!SIM.spawnProb.hasOwnProperty(dir)) return;
     SIM.spawnProb[dir] = num;
     paintSpawn();
-    sendSpawnProbabilities();
+    sendSpawnProbabilities(dir, num);
 }
 
 UI.spawnN?.addEventListener("input", (e) => setSpawn("n", e.target.value));
